@@ -315,6 +315,7 @@ dependencies = [
  "anyhow",
  "autoagents",
  "autoagents-derive",
+ "serde",
  "serde_json",
  "tokio",
 ]
