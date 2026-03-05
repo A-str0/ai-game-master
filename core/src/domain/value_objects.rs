@@ -1,4 +1,31 @@
 use anyhow::{Result, bail};
+use uuid::Uuid;
+
+#[derive(Debug)]
+pub struct GameSessionId(pub Uuid);
+
+impl GameSessionId {
+    pub fn new() -> Self {
+        Self(Uuid::new_v4())
+    }
+
+    pub fn nil() -> Self {
+        Self(Uuid::nil())
+    }
+}
+
+#[derive(Debug)]
+pub struct ContextObjectId(pub Uuid);
+
+impl ContextObjectId {
+    pub fn new() -> Self {
+        Self(Uuid::new_v4())
+    }
+
+    pub fn nil() -> Self {
+        Self(Uuid::nil())
+    }
+}
 
 /// ValueObject
 #[derive(Debug)]

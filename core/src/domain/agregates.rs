@@ -3,51 +3,43 @@ use std::collections::HashMap;
 use anyhow::{Result, bail};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
-use uuid::Uuid;
 
 use crate::domain::value_objects::{
-    ContextObjectType, GameSessionConfig, GameSessionMode, Provenance,
+    ContextObjectId, ContextObjectType, GameSessionConfig, GameSessionId, GameSessionMode,
+    Provenance,
 };
 
 /// Agregate
 #[derive(Debug)]
 pub struct GameSession {
-    owner_id: Uuid,
+    id: GameSessionId,
     session_mode: GameSessionMode,
     config: GameSessionConfig,
 }
 
-/// Agregate
-#[derive(Debug)]
-pub struct GameSessionMetadata {
-    id: Uuid,
-    created_ts: DateTime<Utc>,
-    last_activity_ts: Option<DateTime<Utc>>,
-}
-
 impl GameSession {
-    pub fn new(owner_id: Uuid, session_mode: GameSessionMode, config: GameSessionConfig) -> Self {
+    pub fn new(session_mode: GameSessionMode, config: GameSessionConfig) -> Self {
         Self {
-            owner_id,
+            id: GameSessionId(Uuid::new_v4()),
             session_mode,
             config,
         }
     }
 
     pub fn restore(
-        owner_id: Uuid,
+        id: GameSessionId,
         session_mode: GameSessionMode,
         config: GameSessionConfig,
     ) -> Self {
         Self {
-            owner_id,
+            id,
             session_mode,
             config,
         }
     }
 
-    pub fn owner_id(&self) -> Uuid {
-        self.owner_id
+    pub fn owner_id(&self) -> &GameSessionId {
+        &self.id
     }
 
     pub fn session_mode(&self) -> &GameSessionMode {
@@ -59,33 +51,26 @@ impl GameSession {
     }
 }
 
+/// Entity
+#[derive(Debug)]
+pub struct GameSessionMetadata {
+    created_ts: DateTime<Utc>,
+    last_activity_ts: Option<DateTime<Utc>>,
+}
+
 impl GameSessionMetadata {
-    pub fn new(
-        id: Uuid,
-        created_ts: DateTime<Utc>,
-        last_activity_ts: Option<DateTime<Utc>>,
-    ) -> Self {
+    pub fn new(created_ts: DateTime<Utc>, last_activity_ts: Option<DateTime<Utc>>) -> Self {
         Self {
-            id,
             created_ts,
             last_activity_ts,
         }
     }
 
-    pub fn restore(
-        id: Uuid,
-        created_ts: DateTime<Utc>,
-        last_activity_ts: Option<DateTime<Utc>>,
-    ) -> Self {
+    pub fn restore(created_ts: DateTime<Utc>, last_activity_ts: Option<DateTime<Utc>>) -> Self {
         Self {
-            id,
             created_ts,
             last_activity_ts,
         }
-    }
-
-    pub fn id(&self) -> Uuid {
-        self.id
     }
 
     pub fn created_ts(&self) -> DateTime<Utc> {
@@ -99,27 +84,18 @@ impl GameSessionMetadata {
 
 /// Agregate
 #[derive(Debug)]
-pub struct ContextObject {
-    id: Uuid,
+pub struct ContextObject<'a> {
+    id: ContextObjectId,
     object_type: ContextObjectType,
     title: String,
     short_desc: String,
     long_desc: Option<String>,
     attributes: HashMap<String, Value>,
-    place_id: Option<Uuid>,
+    place_id: Option<&'a ContextObjectId>,
     importance_score: f32,
 }
 
-/// Agregate
-#[derive(Debug)]
-pub struct ContextObjectMetadata {
-    id: Uuid,
-    created_ts: DateTime<Utc>,
-    updated_ts: Option<DateTime<Utc>>,
-    provenance: Provenance,
-}
-
-impl ContextObject {
+impl<'a> ContextObject<'a> {
     fn validate_attributes(attributes: &HashMap<String, Value>) -> Result<()> {
         for key in attributes.keys() {
             if key.trim().is_empty() {
@@ -161,32 +137,32 @@ impl ContextObject {
         short_desc: &str,
         long_desc: Option<&str>,
         attributes: HashMap<String, Value>,
-        place_id: Option<Uuid>,
+        place_id: Option<&'a ContextObjectId>,
         importance_score: f32,
     ) -> Result<Self> {
         Self::validate(title, short_desc, long_desc, importance_score)?;
         Self::validate_attributes(&attributes)?;
 
         Ok(Self {
-            id: Uuid::new_v4(),
+            id: ContextObjectId::new(),
             object_type,
             title: title.to_owned(),
             short_desc: short_desc.to_owned(),
             long_desc: long_desc.map(str::to_owned),
-            attributes, // TODO: validate?
+            attributes,
             place_id,
             importance_score,
         })
     }
 
     pub fn restore(
-        id: Uuid,
+        id: ContextObjectId,
         object_type: ContextObjectType,
         title: String,
         short_desc: String,
         long_desc: Option<String>,
         attributes: HashMap<String, Value>,
-        place_id: Option<Uuid>,
+        place_id: Option<&'a ContextObjectId>,
         importance_score: f32,
     ) -> Result<Self> {
         Self::validate(&title, &short_desc, long_desc.as_deref(), importance_score)?;
@@ -204,8 +180,8 @@ impl ContextObject {
         })
     }
 
-    pub fn id(&self) -> Uuid {
-        self.id
+    pub fn id(&self) -> &ContextObjectId {
+        &self.id
     }
 
     pub fn object_type(&self) -> &ContextObjectType {
@@ -228,7 +204,7 @@ impl ContextObject {
         &self.attributes
     }
 
-    pub fn place_id(&self) -> Option<Uuid> {
+    pub fn place_id(&self) -> Option<&ContextObjectId> {
         self.place_id
     }
 
@@ -237,10 +213,17 @@ impl ContextObject {
     }
 }
 
+/// Entity
+#[derive(Debug)]
+pub struct ContextObjectMetadata {
+    created_ts: DateTime<Utc>,
+    updated_ts: Option<DateTime<Utc>>,
+    provenance: Provenance,
+}
+
 impl ContextObjectMetadata {
     pub fn new(created_ts: DateTime<Utc>, provenance: Provenance) -> Result<Self> {
         Ok(Self {
-            id: Uuid::new_v4(),
             created_ts,
             updated_ts: None,
             provenance,
@@ -248,21 +231,15 @@ impl ContextObjectMetadata {
     }
 
     pub fn restore(
-        id: Uuid,
         created_ts: DateTime<Utc>,
         updated_ts: Option<DateTime<Utc>>,
         provenance: Provenance,
     ) -> Result<Self> {
         Ok(Self {
-            id,
             created_ts,
             updated_ts,
             provenance,
         })
-    }
-
-    pub fn id(&self) -> Uuid {
-        self.id
     }
 
     pub fn created_ts(&self) -> DateTime<Utc> {
