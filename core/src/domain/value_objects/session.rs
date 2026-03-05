@@ -1,61 +1,9 @@
-use derive_more::{From, Into};
-use uuid::Uuid;
-
-use crate::domain::{DomainError, DomainResult};
+use crate::domain::DomainResult;
 
 const DEFAULT_WEIGHTS_SEMANTIC: f32 = 0.6;
 const DEFAULT_WEIGHTS_RECENCY: f32 = 0.2;
 const DEFAULT_WEIGHTS_IMPORTANCE: f32 = 0.15;
 const DEFAULT_WEIGHTS_PROXIMITY: f32 = 0.05;
-
-#[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
-pub struct GameSessionId(pub Uuid);
-
-impl GameSessionId {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    pub fn nil() -> Self {
-        Self(Uuid::nil())
-    }
-}
-
-#[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
-pub struct ContextObjectId(pub Uuid);
-
-impl ContextObjectId {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    pub fn nil() -> Self {
-        Self(Uuid::nil())
-    }
-}
-
-#[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
-pub struct UserId(pub Uuid);
-
-impl UserId {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    pub fn nil() -> Self {
-        Self(Uuid::nil())
-    }
-}
-
-/// ValueObject
-#[derive(Debug)]
-pub enum ContextObjectType {
-    Npc,
-    Place,
-    Item,
-    Event,
-    Note,
-}
 
 /// ValueObject
 #[derive(Debug)]
@@ -152,39 +100,5 @@ impl GameSessionConfig {
 
     pub fn scoring_weights(&self) -> &ScoringWeights {
         &self.scoring_weights
-    }
-}
-
-/// ValueObject
-#[derive(Debug)]
-pub struct Provenance {
-    created_by: String,
-    seed: i64,
-}
-
-impl Provenance {
-    pub fn new(created_by: &str, seed: i64) -> DomainResult<Self> {
-        if created_by.trim().is_empty() {
-            return Err(DomainError::Validation(String::from(
-                "Provenance must specify who it was created by",
-            )));
-        }
-
-        Ok(Self {
-            created_by: String::from(created_by),
-            seed,
-        })
-    }
-
-    pub fn restore(created_by: String, seed: i64) -> Self {
-        Self { created_by, seed }
-    }
-
-    pub fn created_by(&self) -> &str {
-        &self.created_by
-    }
-
-    pub fn seed(&self) -> i64 {
-        self.seed
     }
 }

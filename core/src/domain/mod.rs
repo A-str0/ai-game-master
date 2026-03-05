@@ -1,11 +1,11 @@
 use std::{fmt::Debug, hash::Hash};
 use thiserror::Error;
 
-pub mod agregates;
+pub mod aggregates;
 pub mod services;
 pub mod value_objects;
 
-trait Identifiable {
+pub trait Identifiable {
     type Id: Copy + PartialEq + Hash + Debug + 'static;
 
     fn id(&self) -> &Self::Id;
