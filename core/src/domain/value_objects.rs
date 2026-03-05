@@ -1,7 +1,8 @@
 use anyhow::{Result, bail};
+use derive_more::{From, Into};
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Debug, From, Into, PartialEq)]
 pub struct GameSessionId(pub Uuid);
 
 impl GameSessionId {
@@ -14,7 +15,7 @@ impl GameSessionId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, From, Into, PartialEq)]
 pub struct ContextObjectId(pub Uuid);
 
 impl ContextObjectId {
