@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 
-use anyhow::{Result, bail};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 
-use crate::domain::value_objects::{
-    ContextObjectId, ContextObjectType, GameSessionConfig, GameSessionId, GameSessionMode,
-    Provenance,
+use crate::domain::{
+    DomainError, DomainResult, Identifiable,
+    value_objects::{
+        ContextObjectId, ContextObjectType, GameSessionConfig, GameSessionId, GameSessionMode,
+        Provenance,
+    },
 };
 
 /// Agregate
@@ -17,10 +19,18 @@ pub struct GameSession {
     config: GameSessionConfig,
 }
 
+impl Identifiable for GameSession {
+    type Id = GameSessionId;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
+    }
+}
+
 impl GameSession {
     pub fn new(session_mode: GameSessionMode, config: GameSessionConfig) -> Self {
         Self {
-            id: GameSessionId(Uuid::new_v4()),
+            id: GameSessionId::new(),
             session_mode,
             config,
         }
@@ -96,10 +106,12 @@ pub struct ContextObject<'a> {
 }
 
 impl<'a> ContextObject<'a> {
-    fn validate_attributes(attributes: &HashMap<String, Value>) -> Result<()> {
+    fn validate_attributes(attributes: &HashMap<String, Value>) -> DomainResult<()> {
         for key in attributes.keys() {
             if key.trim().is_empty() {
-                bail!("ContextObject attributes must not contain empty keys");
+                return Err(DomainError::Validation(String::from(
+                    "ContextObject attributes must not contain empty keys",
+                )));
             }
         }
 
@@ -111,21 +123,29 @@ impl<'a> ContextObject<'a> {
         short_desc: &str,
         long_desc: Option<&str>,
         importance_score: f32,
-    ) -> Result<()> {
+    ) -> DomainResult<()> {
         if title.trim().is_empty() {
-            bail!("ContextObject title must not be empty");
+            return Err(DomainError::Validation(String::from(
+                "ContextObject title must not be empty",
+            )));
         }
 
         if short_desc.trim().is_empty() {
-            bail!("ContextObject short_desc must not be empty");
+            return Err(DomainError::Validation(String::from(
+                "ContextObject short_desc must not be empty",
+            )));
         }
 
         if long_desc.is_some_and(|d| d.trim().is_empty()) {
-            bail!("ContextObject long_desc must not be empty when provided");
+            return Err(DomainError::Validation(String::from(
+                "ContextObject long_desc must not be empty when provided",
+            )));
         }
 
         if !importance_score.is_finite() {
-            bail!("ContextObject importance_score must be a finite number");
+            return Err(DomainError::Validation(String::from(
+                "ContextObject importance_score must be a finite number",
+            )));
         }
 
         Ok(())
@@ -139,7 +159,7 @@ impl<'a> ContextObject<'a> {
         attributes: HashMap<String, Value>,
         place_id: Option<&'a ContextObjectId>,
         importance_score: f32,
-    ) -> Result<Self> {
+    ) -> DomainResult<Self> {
         Self::validate(title, short_desc, long_desc, importance_score)?;
         Self::validate_attributes(&attributes)?;
 
@@ -164,7 +184,7 @@ impl<'a> ContextObject<'a> {
         attributes: HashMap<String, Value>,
         place_id: Option<&'a ContextObjectId>,
         importance_score: f32,
-    ) -> Result<Self> {
+    ) -> DomainResult<Self> {
         Self::validate(&title, &short_desc, long_desc.as_deref(), importance_score)?;
         Self::validate_attributes(&attributes)?;
 
@@ -178,10 +198,6 @@ impl<'a> ContextObject<'a> {
             place_id,
             importance_score,
         })
-    }
-
-    pub fn id(&self) -> &ContextObjectId {
-        &self.id
     }
 
     pub fn object_type(&self) -> &ContextObjectType {
@@ -213,6 +229,14 @@ impl<'a> ContextObject<'a> {
     }
 }
 
+impl<'a> Identifiable for ContextObject<'a> {
+    type Id = ContextObjectId;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
+    }
+}
+
 /// Entity
 #[derive(Debug)]
 pub struct ContextObjectMetadata {
@@ -222,7 +246,7 @@ pub struct ContextObjectMetadata {
 }
 
 impl ContextObjectMetadata {
-    pub fn new(created_ts: DateTime<Utc>, provenance: Provenance) -> Result<Self> {
+    pub fn new(created_ts: DateTime<Utc>, provenance: Provenance) -> DomainResult<Self> {
         Ok(Self {
             created_ts,
             updated_ts: None,
@@ -234,7 +258,7 @@ impl ContextObjectMetadata {
         created_ts: DateTime<Utc>,
         updated_ts: Option<DateTime<Utc>>,
         provenance: Provenance,
-    ) -> Result<Self> {
+    ) -> DomainResult<Self> {
         Ok(Self {
             created_ts,
             updated_ts,

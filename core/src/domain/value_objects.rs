@@ -1,8 +1,9 @@
-use anyhow::{Result, bail};
 use derive_more::{From, Into};
 use uuid::Uuid;
 
-#[derive(Debug, From, Into, PartialEq)]
+use crate::domain::{DomainError, DomainResult};
+
+#[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
 pub struct GameSessionId(pub Uuid);
 
 impl GameSessionId {
@@ -15,7 +16,7 @@ impl GameSessionId {
     }
 }
 
-#[derive(Debug, From, Into, PartialEq)]
+#[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
 pub struct ContextObjectId(pub Uuid);
 
 impl ContextObjectId {
@@ -89,7 +90,7 @@ impl GameSessionConfig {
         retrivial_k: u8,
         memory_budget: u32,
         scoring_weights: ScoringWeights,
-    ) -> Result<Self> {
+    ) -> DomainResult<Self> {
         Ok(Self {
             retrivial_k,
             memory_budget,
@@ -126,9 +127,11 @@ pub struct Provenance {
 }
 
 impl Provenance {
-    pub fn new(created_by: &str, seed: i64) -> Result<Self> {
+    pub fn new(created_by: &str, seed: i64) -> DomainResult<Self> {
         if created_by.trim().is_empty() {
-            bail!("Provenance must specify who it was created by");
+            return Err(DomainError::Validation(String::from(
+                "Provenance must specify who it was created by",
+            )));
         }
 
         Ok(Self {
