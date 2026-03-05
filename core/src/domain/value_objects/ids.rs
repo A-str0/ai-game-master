@@ -39,3 +39,16 @@ impl UserId {
         Self(Uuid::nil())
     }
 }
+
+#[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
+pub struct MessageId(pub Uuid);
+
+impl MessageId {
+    pub fn new() -> Self {
+        Self(Uuid::new_v4())
+    }
+
+    pub fn nil() -> Self {
+        Self(Uuid::nil())
+    }
+}
