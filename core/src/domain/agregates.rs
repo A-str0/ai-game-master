@@ -5,18 +5,100 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::domain::value_objects::{ContextObjectType, GameSessionMode, Provenance};
+use crate::domain::value_objects::{
+    ContextObjectType, GameSessionConfig, GameSessionMode, Provenance,
+};
 
 /// Agregate
+#[derive(Debug)]
 pub struct GameSession {
-    session_id: Uuid,
     owner_id: Uuid,
-    created_ts: DateTime<Utc>,
-    last_activity_ts: Option<DateTime<Utc>>,
     session_mode: GameSessionMode,
+    config: GameSessionConfig,
 }
 
 /// Agregate
+#[derive(Debug)]
+pub struct GameSessionMetadata {
+    id: Uuid,
+    created_ts: DateTime<Utc>,
+    last_activity_ts: Option<DateTime<Utc>>,
+}
+
+impl GameSession {
+    pub fn new(owner_id: Uuid, session_mode: GameSessionMode, config: GameSessionConfig) -> Self {
+        Self {
+            owner_id,
+            session_mode,
+            config,
+        }
+    }
+
+    pub fn restore(
+        owner_id: Uuid,
+        session_mode: GameSessionMode,
+        config: GameSessionConfig,
+    ) -> Self {
+        Self {
+            owner_id,
+            session_mode,
+            config,
+        }
+    }
+
+    pub fn owner_id(&self) -> Uuid {
+        self.owner_id
+    }
+
+    pub fn session_mode(&self) -> &GameSessionMode {
+        &self.session_mode
+    }
+
+    pub fn config(&self) -> &GameSessionConfig {
+        &self.config
+    }
+}
+
+impl GameSessionMetadata {
+    pub fn new(
+        id: Uuid,
+        created_ts: DateTime<Utc>,
+        last_activity_ts: Option<DateTime<Utc>>,
+    ) -> Self {
+        Self {
+            id,
+            created_ts,
+            last_activity_ts,
+        }
+    }
+
+    pub fn restore(
+        id: Uuid,
+        created_ts: DateTime<Utc>,
+        last_activity_ts: Option<DateTime<Utc>>,
+    ) -> Self {
+        Self {
+            id,
+            created_ts,
+            last_activity_ts,
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn created_ts(&self) -> DateTime<Utc> {
+        self.created_ts
+    }
+
+    pub fn last_activity_ts(&self) -> Option<DateTime<Utc>> {
+        self.last_activity_ts
+    }
+}
+
+/// Agregate
+#[derive(Debug)]
 pub struct ContextObject {
     id: Uuid,
     object_type: ContextObjectType,
@@ -29,6 +111,7 @@ pub struct ContextObject {
 }
 
 /// Agregate
+#[derive(Debug)]
 pub struct ContextObjectMetadata {
     id: Uuid,
     created_ts: DateTime<Utc>,

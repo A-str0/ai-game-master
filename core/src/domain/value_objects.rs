@@ -1,5 +1,7 @@
 use anyhow::{Result, bail};
 
+/// ValueObject
+#[derive(Debug)]
 pub enum ContextObjectType {
     Npc,
     Place,
@@ -8,15 +10,51 @@ pub enum ContextObjectType {
     Note,
 }
 
+/// ValueObject
+#[derive(Debug)]
 pub enum GameSessionMode {
     Solo,
     Multi,
 }
 
 /// ValueObject
+#[derive(Debug)]
 pub struct Provenance {
     created_by: String,
     seed: i64,
+}
+
+/// ValueObject
+#[derive(Debug)]
+pub struct GameSessionConfig {
+    retrivial_k: u8,
+    memory_budget: u32,
+}
+
+// TODO: пересмотреть new() и restore()
+/// ValueObject
+impl GameSessionConfig {
+    pub fn new(retrivial_k: u8, memory_budget: u32) -> Result<Self> {
+        Ok(Self {
+            retrivial_k,
+            memory_budget,
+        })
+    }
+
+    pub fn restore(retrivial_k: u8, memory_budget: u32) -> Self {
+        Self {
+            retrivial_k,
+            memory_budget,
+        }
+    }
+
+    pub fn retrivial_k(&self) -> u8 {
+        self.retrivial_k
+    }
+
+    pub fn memory_budget(&self) -> u32 {
+        self.memory_budget
+    }
 }
 
 impl Provenance {
