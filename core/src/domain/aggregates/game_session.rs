@@ -49,8 +49,8 @@ impl GameSession {
         }
     }
 
-    pub fn owner_id(&self) -> &GameSessionId {
-        &self.id
+    pub fn owner_id(&self) -> &UserId {
+        &self.owner_id
     }
 
     pub fn session_mode(&self) -> &GameSessionMode {
