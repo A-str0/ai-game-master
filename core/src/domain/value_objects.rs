@@ -19,9 +19,22 @@ pub enum GameSessionMode {
 
 /// ValueObject
 #[derive(Debug)]
-pub struct Provenance {
-    created_by: String,
-    seed: i64,
+pub struct ScoringWeights {
+    semantic: f32,
+    recency: f32,
+    importance: f32,
+    proximity: f32,
+}
+
+impl Default for ScoringWeights {
+    fn default() -> Self {
+        Self {
+            semantic: Default::default(),
+            recency: Default::default(),
+            importance: Default::default(),
+            proximity: Default::default(),
+        }
+    }
 }
 
 /// ValueObject
@@ -29,6 +42,7 @@ pub struct Provenance {
 pub struct GameSessionConfig {
     retrivial_k: u8,
     memory_budget: u32,
+    scoring_weights: ScoringWeights,
 }
 
 impl Default for GameSessionConfig {
@@ -36,23 +50,30 @@ impl Default for GameSessionConfig {
         Self {
             retrivial_k: 10,
             memory_budget: 2000,
+            scoring_weights: ScoringWeights::default(),
         }
     }
 }
 
 // TODO: пересмотреть new() и restore()
 impl GameSessionConfig {
-    pub fn new(retrivial_k: u8, memory_budget: u32) -> Result<Self> {
+    pub fn new(
+        retrivial_k: u8,
+        memory_budget: u32,
+        scoring_weights: ScoringWeights,
+    ) -> Result<Self> {
         Ok(Self {
             retrivial_k,
             memory_budget,
+            scoring_weights,
         })
     }
 
-    pub fn restore(retrivial_k: u8, memory_budget: u32) -> Self {
+    pub fn restore(retrivial_k: u8, memory_budget: u32, scoring_weights: ScoringWeights) -> Self {
         Self {
             retrivial_k,
             memory_budget,
+            scoring_weights,
         }
     }
 
@@ -63,6 +84,17 @@ impl GameSessionConfig {
     pub fn memory_budget(&self) -> u32 {
         self.memory_budget
     }
+
+    pub fn scoring_weights(&self) -> &ScoringWeights {
+        &self.scoring_weights
+    }
+}
+
+/// ValueObject
+#[derive(Debug)]
+pub struct Provenance {
+    created_by: String,
+    seed: i64,
 }
 
 impl Provenance {
