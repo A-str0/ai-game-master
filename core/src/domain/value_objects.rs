@@ -3,6 +3,11 @@ use uuid::Uuid;
 
 use crate::domain::{DomainError, DomainResult};
 
+const DEFAULT_WEIGHTS_SEMANTIC: f32 = 0.6;
+const DEFAULT_WEIGHTS_RECENCY: f32 = 0.2;
+const DEFAULT_WEIGHTS_IMPORTANCE: f32 = 0.15;
+const DEFAULT_WEIGHTS_PROXIMITY: f32 = 0.05;
+
 #[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
 pub struct GameSessionId(pub Uuid);
 
@@ -58,11 +63,29 @@ pub struct ScoringWeights {
 impl Default for ScoringWeights {
     fn default() -> Self {
         Self {
-            semantic: Default::default(),
-            recency: Default::default(),
-            importance: Default::default(),
-            proximity: Default::default(),
+            semantic: DEFAULT_WEIGHTS_SEMANTIC,
+            recency: DEFAULT_WEIGHTS_RECENCY,
+            importance: DEFAULT_WEIGHTS_IMPORTANCE,
+            proximity: DEFAULT_WEIGHTS_PROXIMITY,
         }
+    }
+}
+
+impl ScoringWeights {
+    pub fn semantic(&self) -> f32 {
+        self.semantic
+    }
+
+    pub fn recency(&self) -> f32 {
+        self.recency
+    }
+
+    pub fn importance(&self) -> f32 {
+        self.importance
+    }
+
+    pub fn proximity(&self) -> f32 {
+        self.proximity
     }
 }
 
