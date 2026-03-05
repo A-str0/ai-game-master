@@ -31,8 +31,16 @@ pub struct GameSessionConfig {
     memory_budget: u32,
 }
 
+impl Default for GameSessionConfig {
+    fn default() -> Self {
+        Self {
+            retrivial_k: 10,
+            memory_budget: 2000,
+        }
+    }
+}
+
 // TODO: пересмотреть new() и restore()
-/// ValueObject
 impl GameSessionConfig {
     pub fn new(retrivial_k: u8, memory_budget: u32) -> Result<Self> {
         Ok(Self {
