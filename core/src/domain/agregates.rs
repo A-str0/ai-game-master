@@ -7,7 +7,7 @@ use crate::domain::{
     DomainError, DomainResult, Identifiable,
     value_objects::{
         ContextObjectId, ContextObjectType, GameSessionConfig, GameSessionId, GameSessionMode,
-        Provenance,
+        Provenance, UserId,
     },
 };
 
@@ -15,6 +15,8 @@ use crate::domain::{
 #[derive(Debug)]
 pub struct GameSession {
     id: GameSessionId,
+    owner_id: UserId,
+    place_id: ContextObjectId, // TODO: move to Character
     session_mode: GameSessionMode,
     config: GameSessionConfig,
 }
@@ -28,9 +30,11 @@ impl Identifiable for GameSession {
 }
 
 impl GameSession {
-    pub fn new(session_mode: GameSessionMode, config: GameSessionConfig) -> Self {
+    pub fn new(owner_id: UserId, session_mode: GameSessionMode, config: GameSessionConfig) -> Self {
         Self {
             id: GameSessionId::new(),
+            owner_id,
+            place_id: ContextObjectId::new(), // TODO: move to args
             session_mode,
             config,
         }
@@ -38,11 +42,14 @@ impl GameSession {
 
     pub fn restore(
         id: GameSessionId,
+        owner_id: UserId,
         session_mode: GameSessionMode,
         config: GameSessionConfig,
     ) -> Self {
         Self {
             id,
+            owner_id,
+            place_id: ContextObjectId::new(), // TODO: move to args
             session_mode,
             config,
         }
