@@ -101,18 +101,18 @@ impl GameSessionMetadata {
 
 /// Agregate
 #[derive(Debug)]
-pub struct ContextObject<'a> {
+pub struct ContextObject {
     id: ContextObjectId,
     object_type: ContextObjectType,
     title: String,
     short_desc: String,
     long_desc: Option<String>,
     attributes: HashMap<String, Value>,
-    place_id: Option<&'a ContextObjectId>,
+    place_id: Option<ContextObjectId>,
     importance_score: f32,
 }
 
-impl<'a> ContextObject<'a> {
+impl ContextObject {
     fn validate_attributes(attributes: &HashMap<String, Value>) -> DomainResult<()> {
         for key in attributes.keys() {
             if key.trim().is_empty() {
@@ -164,7 +164,7 @@ impl<'a> ContextObject<'a> {
         short_desc: &str,
         long_desc: Option<&str>,
         attributes: HashMap<String, Value>,
-        place_id: Option<&'a ContextObjectId>,
+        place_id: Option<ContextObjectId>,
         importance_score: f32,
     ) -> DomainResult<Self> {
         Self::validate(title, short_desc, long_desc, importance_score)?;
@@ -189,7 +189,7 @@ impl<'a> ContextObject<'a> {
         short_desc: String,
         long_desc: Option<String>,
         attributes: HashMap<String, Value>,
-        place_id: Option<&'a ContextObjectId>,
+        place_id: Option<ContextObjectId>,
         importance_score: f32,
     ) -> DomainResult<Self> {
         Self::validate(&title, &short_desc, long_desc.as_deref(), importance_score)?;
@@ -228,7 +228,7 @@ impl<'a> ContextObject<'a> {
     }
 
     pub fn place_id(&self) -> Option<&ContextObjectId> {
-        self.place_id
+        self.place_id.as_ref()
     }
 
     pub fn importance_score(&self) -> f32 {
@@ -236,7 +236,7 @@ impl<'a> ContextObject<'a> {
     }
 }
 
-impl<'a> Identifiable for ContextObject<'a> {
+impl Identifiable for ContextObject {
     type Id = ContextObjectId;
 
     fn id(&self) -> &Self::Id {
