@@ -1,4 +1,4 @@
-use crate::domain::{Identifiable, value_objects::UserId};
+use crate::{Identifiable, value_objects::UserId};
 
 /// Aggregate
 #[derive(Debug)]

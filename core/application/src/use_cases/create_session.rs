@@ -1,15 +1,14 @@
 use std::sync::Arc;
 
+use domain::{
+    Identifiable,
+    aggregates::GameSession,
+    value_objects::{GameSessionConfig, GameSessionId, GameSessionMode, UserId},
+};
+
 use crate::{
-    application::{
-        ports::GameSessionRepository,
-        use_cases::{AppResult, UseCase},
-    },
-    domain::{
-        Identifiable,
-        aggregates::GameSession,
-        value_objects::{GameSessionConfig, GameSessionId, GameSessionMode, UserId},
-    },
+    ports::GameSessionRepository,
+    use_cases::{AppResult, UseCase},
 };
 
 pub struct CreateSessionCommand {

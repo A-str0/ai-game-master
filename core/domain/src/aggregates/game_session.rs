@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::domain::{
+use crate::{
     Identifiable,
     value_objects::{ContextObjectId, GameSessionConfig, GameSessionId, GameSessionMode, UserId},
 };

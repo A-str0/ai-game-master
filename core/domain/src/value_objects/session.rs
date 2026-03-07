@@ -1,4 +1,4 @@
-use crate::domain::DomainResult;
+use crate::DomainResult;
 
 const DEFAULT_WEIGHTS_SEMANTIC: f32 = 0.6;
 const DEFAULT_WEIGHTS_RECENCY: f32 = 0.2;

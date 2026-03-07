@@ -1,6 +1,6 @@
 mod game_session_repository;
 
-use crate::application::AppError;
+use crate::AppError;
 
 pub use game_session_repository::GameSessionRepository;
 

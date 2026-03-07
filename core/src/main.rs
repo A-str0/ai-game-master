@@ -1,7 +1,0 @@
-mod application;
-mod domain;
-
-#[tokio::main]
-async fn main() {
-    println!("Hello, world!");
-}

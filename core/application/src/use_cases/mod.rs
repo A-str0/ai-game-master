@@ -1,6 +1,6 @@
 mod create_session;
 
-use crate::application::AppError;
+use crate::AppError;
 
 pub type AppResult<T> = Result<T, AppError>;
 

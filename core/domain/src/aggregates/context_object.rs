@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 
-use crate::domain::{
+use crate::{
     DomainError, DomainResult, Identifiable,
     value_objects::{ContextObjectId, ContextObjectType, Provenance},
 };

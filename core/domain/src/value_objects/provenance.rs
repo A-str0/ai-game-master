@@ -1,4 +1,4 @@
-use crate::domain::{DomainError, DomainResult};
+use crate::{DomainError, DomainResult};
 
 /// ValueObject
 #[derive(Debug)]

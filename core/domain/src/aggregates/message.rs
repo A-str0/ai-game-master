@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::domain::{
+use crate::{
     DomainError, DomainResult, Identifiable,
     value_objects::{GameSessionId, MessageId, MessageRole},
 };

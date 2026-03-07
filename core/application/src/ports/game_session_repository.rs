@@ -1,7 +1,6 @@
-use crate::{
-    application::{AppError, ports::RepoResult},
-    domain::{aggregates::GameSession, value_objects::GameSessionId},
-};
+use domain::{aggregates::GameSession, value_objects::GameSessionId};
+
+use crate::ports::RepoResult;
 
 pub trait GameSessionRepository {
     async fn create(&self, session: &GameSession) -> RepoResult<()>;

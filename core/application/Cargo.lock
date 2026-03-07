@@ -40,7 +40,6 @@ dependencies = [
  "autoagents-derive",
  "axum",
  "derive_more",
- "domain",
  "thiserror 2.0.18",
  "tokio",
  "uuid",
@@ -321,10 +320,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c673075a2e0e5f4a1dde27ce9dee1ea4558c7ffe648f576438a20ca1d2acc4b0"
 dependencies = [
  "iana-time-zone",
- "js-sys",
  "num-traits",
  "serde",
- "wasm-bindgen",
  "windows-link",
 ]
 
@@ -535,17 +532,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4b8a88685455ed29a21542a33abd9cb6510b6b129abadabdcef0f4c55bc8f61"
 dependencies = [
  "litrs",
-]
-
-[[package]]
-name = "domain"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "derive_more",
- "serde_json",
- "thiserror 2.0.18",
- "uuid",
 ]
 
 [[package]]
