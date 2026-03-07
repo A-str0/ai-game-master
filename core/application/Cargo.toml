@@ -12,3 +12,4 @@ tokio = {version = "1.49.0", features = ["rt-multi-thread", "macros"]}
 uuid = "1.21.0"
 derive_more = {version = "2.1.1", features = ["from", "into"]}
 thiserror = "2.0.18"
+async-trait = "0.1.89"

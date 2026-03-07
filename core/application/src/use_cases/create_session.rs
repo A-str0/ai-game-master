@@ -31,9 +31,10 @@ impl<R> CreateSessionUseCase<R> {
     }
 }
 
+#[async_trait::async_trait]
 impl<R> UseCase<CreateSessionCommand, CreateSessionResult> for CreateSessionUseCase<R>
 where
-    R: GameSessionRepository,
+    R: GameSessionRepository + Send + Sync,
 {
     async fn execute(&self, command: CreateSessionCommand) -> AppResult<CreateSessionResult> {
         let session = GameSession::new(command.owner_id, command.session_mode, command.config);

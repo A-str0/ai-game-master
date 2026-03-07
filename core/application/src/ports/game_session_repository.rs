@@ -2,6 +2,7 @@ use domain::{aggregates::GameSession, value_objects::GameSessionId};
 
 use crate::ports::RepoResult;
 
+#[async_trait::async_trait]
 pub trait GameSessionRepository {
     async fn create(&self, session: &GameSession) -> RepoResult<()>;
     async fn get(&self, id: &GameSessionId) -> RepoResult<GameSession>;
