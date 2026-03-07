@@ -16,5 +16,4 @@ pub type PortResult<T> = Result<T, PortError>;
 #[async_trait::async_trait]
 pub trait UserAccessPort: Send + Sync {
     async fn get_user(&self) -> PortResult<User>;
-    async fn ensure_can_create_game_session(&self) -> PortResult<()>;
 }

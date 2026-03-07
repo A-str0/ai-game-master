@@ -39,6 +39,10 @@ impl CreateSessionUseCase {
 #[async_trait::async_trait]
 impl UseCase<CreateSessionCommand, CreateSessionResult> for CreateSessionUseCase {
     async fn execute(&self, command: CreateSessionCommand) -> AppResult<CreateSessionResult> {
+        if let Err(crate::ports::PortError::NotFound) = self.user_access.get_user().await {
+            return Err(crate::AppError::OwnerNotFound);
+        }
+
         let session = GameSession::new(command.owner_id, GameSessionConfig::default()); // TODO: change from default()
         self.sessions_repo.create(&session).await?;
 
