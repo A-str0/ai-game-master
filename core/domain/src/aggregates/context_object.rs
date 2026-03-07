@@ -25,7 +25,7 @@ impl ContextObject {
     fn validate_attributes(attributes: &HashMap<String, Value>) -> DomainResult<()> {
         for key in attributes.keys() {
             if key.trim().is_empty() {
-                return Err(DomainError::Validation(String::from(
+                return Err(DomainError::InvariantViolation(String::from(
                     "ContextObject attributes must not contain empty keys",
                 )));
             }
@@ -41,25 +41,25 @@ impl ContextObject {
         importance_score: f32,
     ) -> DomainResult<()> {
         if title.trim().is_empty() {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "ContextObject title must not be empty",
             )));
         }
 
         if short_desc.trim().is_empty() {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "ContextObject short_desc must not be empty",
             )));
         }
 
         if long_desc.is_some_and(|d| d.trim().is_empty()) {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "ContextObject long_desc must not be empty when provided",
             )));
         }
 
         if !importance_score.is_finite() {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "ContextObject importance_score must be a finite number",
             )));
         }

@@ -10,7 +10,7 @@ pub struct Provenance {
 impl Provenance {
     pub fn new(created_by: &str, seed: i64) -> DomainResult<Self> {
         if created_by.trim().is_empty() {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "Provenance must specify who it was created by",
             )));
         }

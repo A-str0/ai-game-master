@@ -13,8 +13,8 @@ pub trait Identifiable {
 
 #[derive(Debug, Error)]
 pub enum DomainError {
-    #[error("validation failed: {0}")]
-    Validation(String),
+    #[error("domain invariant violated: {0}")]
+    InvariantViolation(String),
 }
 
 pub type DomainResult<T> = Result<T, DomainError>;

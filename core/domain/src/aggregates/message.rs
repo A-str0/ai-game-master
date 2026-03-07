@@ -19,13 +19,13 @@ pub struct Message {
 impl Message {
     fn validate(text: &str, embedding_id: Option<&str>) -> DomainResult<()> {
         if text.trim().is_empty() {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "Message text must not be empty",
             )));
         }
 
         if embedding_id.is_some_and(|id| id.trim().is_empty()) {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "Message embedding_id must not be empty when provided",
             )));
         }
