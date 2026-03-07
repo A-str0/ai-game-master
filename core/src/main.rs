@@ -1,5 +1,5 @@
+mod application;
 mod domain;
-mod schema;
 
 #[tokio::main]
 async fn main() {
