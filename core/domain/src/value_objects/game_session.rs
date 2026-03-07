@@ -56,6 +56,7 @@ pub struct GameSessionConfig {
     retrivial_k: u8,
     memory_budget: u32,
     scoring_weights: ScoringWeights,
+    session_mode: GameSessionMode,
 }
 
 impl Default for GameSessionConfig {
@@ -64,6 +65,7 @@ impl Default for GameSessionConfig {
             retrivial_k: 10,
             memory_budget: 2000,
             scoring_weights: ScoringWeights::default(),
+            session_mode: GameSessionMode::Solo,
         }
     }
 }
@@ -74,19 +76,27 @@ impl GameSessionConfig {
         retrivial_k: u8,
         memory_budget: u32,
         scoring_weights: ScoringWeights,
+        session_mode: GameSessionMode,
     ) -> DomainResult<Self> {
         Ok(Self {
             retrivial_k,
             memory_budget,
             scoring_weights,
+            session_mode,
         })
     }
 
-    pub fn restore(retrivial_k: u8, memory_budget: u32, scoring_weights: ScoringWeights) -> Self {
+    pub fn restore(
+        retrivial_k: u8,
+        memory_budget: u32,
+        scoring_weights: ScoringWeights,
+        session_mode: GameSessionMode,
+    ) -> Self {
         Self {
             retrivial_k,
             memory_budget,
             scoring_weights,
+            session_mode,
         }
     }
 
@@ -100,5 +110,9 @@ impl GameSessionConfig {
 
     pub fn scoring_weights(&self) -> &ScoringWeights {
         &self.scoring_weights
+    }
+
+    pub fn session_mode(&self) -> &GameSessionMode {
+        &self.session_mode
     }
 }

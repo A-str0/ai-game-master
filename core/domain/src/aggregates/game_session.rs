@@ -2,17 +2,18 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     Identifiable,
-    value_objects::{ContextObjectId, GameSessionConfig, GameSessionId, GameSessionMode, UserId},
+    value_objects::{GameSessionConfig, GameSessionId, UserId},
 };
 
-/// Aggregate
+/// Aggregate root
 #[derive(Debug)]
 pub struct GameSession {
     id: GameSessionId,
     owner_id: UserId,
-    place_id: ContextObjectId, // TODO: move to Character
-    session_mode: GameSessionMode,
     config: GameSessionConfig,
+    // TODO: rng_state: RngState
+    created_ts: DateTime<Utc>,
+    last_activity_ts: Option<DateTime<Utc>>,
 }
 
 impl Identifiable for GameSession {
@@ -24,28 +25,29 @@ impl Identifiable for GameSession {
 }
 
 impl GameSession {
-    pub fn new(owner_id: UserId, session_mode: GameSessionMode, config: GameSessionConfig) -> Self {
+    pub fn new(owner_id: UserId, config: GameSessionConfig) -> Self {
         Self {
             id: GameSessionId::new(),
             owner_id,
-            place_id: ContextObjectId::new(), // TODO: move to args
-            session_mode,
             config,
+            created_ts: Utc::now(),
+            last_activity_ts: None,
         }
     }
 
     pub fn restore(
         id: GameSessionId,
         owner_id: UserId,
-        session_mode: GameSessionMode,
         config: GameSessionConfig,
+        created_ts: DateTime<Utc>,
+        last_activity_ts: Option<DateTime<Utc>>,
     ) -> Self {
         Self {
             id,
             owner_id,
-            place_id: ContextObjectId::new(), // TODO: move to args
-            session_mode,
             config,
+            created_ts,
+            last_activity_ts,
         }
     }
 
@@ -53,35 +55,8 @@ impl GameSession {
         &self.owner_id
     }
 
-    pub fn session_mode(&self) -> &GameSessionMode {
-        &self.session_mode
-    }
-
     pub fn config(&self) -> &GameSessionConfig {
         &self.config
-    }
-}
-
-/// Entity
-#[derive(Debug)]
-pub struct GameSessionMetadata {
-    created_ts: DateTime<Utc>,
-    last_activity_ts: Option<DateTime<Utc>>,
-}
-
-impl GameSessionMetadata {
-    pub fn new(created_ts: DateTime<Utc>, last_activity_ts: Option<DateTime<Utc>>) -> Self {
-        Self {
-            created_ts,
-            last_activity_ts,
-        }
-    }
-
-    pub fn restore(created_ts: DateTime<Utc>, last_activity_ts: Option<DateTime<Utc>>) -> Self {
-        Self {
-            created_ts,
-            last_activity_ts,
-        }
     }
 
     pub fn created_ts(&self) -> DateTime<Utc> {
