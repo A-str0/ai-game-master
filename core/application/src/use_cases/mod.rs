@@ -1,7 +1,7 @@
 mod create_session;
 mod get_session;
 
-pub use create_session::{CreateSessionCommand, CreateSessionOutput, CreateSessionUseCase};
+pub use create_session::{CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase};
 pub use get_session::GetSessionUseCase;
 
 use crate::AppResult;

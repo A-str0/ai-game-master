@@ -16,7 +16,7 @@ pub struct CreateSessionCommand {
     pub owner_id: UserId,
 }
 
-pub struct CreateSessionOutput {
+pub struct CreateSessionResponse {
     pub session_id: GameSessionId,
 }
 
@@ -38,8 +38,8 @@ impl CreateSessionUseCase {
 }
 
 #[async_trait::async_trait]
-impl UseCase<CreateSessionCommand, CreateSessionOutput> for CreateSessionUseCase {
-    async fn execute(&self, command: CreateSessionCommand) -> AppResult<CreateSessionOutput> {
+impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCase {
+    async fn execute(&self, command: CreateSessionCommand) -> AppResult<CreateSessionResponse> {
         let current_user = self.user_access.get_user().await.map_err(|err| match err {
             PortError::NotFound => AppError::NotFound(command.owner_id.into()),
             PortError::Forbidden => AppError::Forbidden,
@@ -60,7 +60,7 @@ impl UseCase<CreateSessionCommand, CreateSessionOutput> for CreateSessionUseCase
                 crate::ports::RepoError::Unavailable => AppError::Unavailable,
             })?;
 
-        Ok(CreateSessionOutput {
+        Ok(CreateSessionResponse {
             session_id: *session.id(),
         })
     }
