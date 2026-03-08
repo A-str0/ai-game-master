@@ -8,7 +8,7 @@ use domain::{
 
 use crate::{
     AppError,
-    ports::{GameSessionRepository, PortError, UserAccessPort},
+    ports::{GameSessionRepository, PortError, RepoError, UserAccessPort},
     use_cases::{AppResult, UseCase},
 };
 
@@ -55,9 +55,9 @@ impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
             .get(&command.0)
             .await
             .map_err(|err| match err {
-                crate::ports::RepoError::NotFound => AppError::NotFound(command.0.into()),
-                crate::ports::RepoError::Conflict => AppError::Conflict,
-                crate::ports::RepoError::Unavailable => AppError::Unavailable,
+                RepoError::NotFound => AppError::NotFound(command.0.into()),
+                RepoError::Conflict => AppError::Conflict,
+                RepoError::Unavailable => AppError::Unavailable,
             })?;
 
         if session.owner_id() != current_user.id() {

@@ -6,7 +6,7 @@ const DEFAULT_WEIGHTS_IMPORTANCE: f32 = 0.15;
 const DEFAULT_WEIGHTS_PROXIMITY: f32 = 0.05;
 
 /// ValueObject
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum GameSessionMode {
     Solo,
     Multi,
