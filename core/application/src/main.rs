@@ -2,6 +2,7 @@ use thiserror::Error;
 use uuid::Uuid;
 
 pub mod ports;
+pub mod service;
 pub mod use_cases;
 
 #[derive(Debug, Error)]

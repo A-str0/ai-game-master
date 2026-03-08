@@ -52,7 +52,7 @@ impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
 
         let session = self
             .sessions_repo
-            .get(&command.0)
+            .get_by_id(&command.0)
             .await
             .map_err(|err| match err {
                 RepoError::NotFound => AppError::NotFound(command.0.into()),

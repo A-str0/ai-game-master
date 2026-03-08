@@ -1,10 +1,12 @@
 mod game_session_repository;
+mod message_repository;
 mod user_access;
 
 use thiserror::Error;
 
-pub use game_session_repository::GameSessionRepository;
-pub use user_access::UserAccessPort;
+pub use game_session_repository::*;
+pub use message_repository::*;
+pub use user_access::*;
 
 #[derive(Debug, Error)]
 pub enum RepoError {

@@ -5,5 +5,5 @@ use crate::ports::RepoResult;
 #[async_trait::async_trait]
 pub trait GameSessionRepository: Send + Sync {
     async fn create(&self, session: &GameSession) -> RepoResult<()>;
-    async fn get(&self, id: &GameSessionId) -> RepoResult<GameSession>;
+    async fn get_by_id(&self, id: &GameSessionId) -> RepoResult<GameSession>;
 }
