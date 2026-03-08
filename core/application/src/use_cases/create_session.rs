@@ -7,7 +7,8 @@ use domain::{
 };
 
 use crate::{
-    ports::{GameSessionRepository, UserAccessPort},
+    AppError,
+    ports::{GameSessionRepository, PortError, UserAccessPort},
     use_cases::{AppResult, UseCase},
 };
 
@@ -15,7 +16,7 @@ pub struct CreateSessionCommand {
     pub owner_id: UserId,
 }
 
-pub struct CreateSessionResult {
+pub struct CreateSessionOutput {
     pub session_id: GameSessionId,
 }
 
@@ -37,16 +38,29 @@ impl CreateSessionUseCase {
 }
 
 #[async_trait::async_trait]
-impl UseCase<CreateSessionCommand, CreateSessionResult> for CreateSessionUseCase {
-    async fn execute(&self, command: CreateSessionCommand) -> AppResult<CreateSessionResult> {
-        if let Err(crate::ports::PortError::NotFound) = self.user_access.get_user().await {
-            return Err(crate::AppError::OwnerNotFound);
+impl UseCase<CreateSessionCommand, CreateSessionOutput> for CreateSessionUseCase {
+    async fn execute(&self, command: CreateSessionCommand) -> AppResult<CreateSessionOutput> {
+        let current_user = self.user_access.get_user().await.map_err(|err| match err {
+            PortError::NotFound => AppError::NotFound(command.owner_id.into()),
+            PortError::Forbidden => AppError::Forbidden,
+            PortError::Unavailable => AppError::Unavailable,
+        })?;
+
+        if current_user.id() != &command.owner_id {
+            return Err(AppError::Forbidden);
         }
 
         let session = GameSession::new(command.owner_id, GameSessionConfig::default()); // TODO: change from default()
-        self.sessions_repo.create(&session).await?;
+        self.sessions_repo
+            .create(&session)
+            .await
+            .map_err(|err| match err {
+                crate::ports::RepoError::NotFound => AppError::NotFound(command.owner_id.into()),
+                crate::ports::RepoError::Conflict => AppError::Conflict,
+                crate::ports::RepoError::Unavailable => AppError::Unavailable,
+            })?;
 
-        Ok(CreateSessionResult {
+        Ok(CreateSessionOutput {
             session_id: *session.id(),
         })
     }

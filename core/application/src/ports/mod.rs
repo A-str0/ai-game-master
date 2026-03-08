@@ -4,7 +4,7 @@ mod user_access;
 use thiserror::Error;
 
 pub use game_session_repository::GameSessionRepository;
-pub use user_access::{PortError, PortResult, UserAccessPort};
+pub use user_access::UserAccessPort;
 
 #[derive(Debug, Error)]
 pub enum RepoError {
@@ -17,3 +17,15 @@ pub enum RepoError {
 }
 
 pub type RepoResult<T> = Result<T, RepoError>;
+
+#[derive(Debug, Error)]
+pub enum PortError {
+    #[error("user not found")]
+    NotFound,
+    #[error("access denied")]
+    Forbidden,
+    #[error("access backend unavailable")]
+    Unavailable,
+}
+
+pub type PortResult<T> = Result<T, PortError>;
