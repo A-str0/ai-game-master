@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 pub mod ports;
-pub mod service;
+pub mod services;
 pub mod use_cases;
 
 #[derive(Debug, Error)]
