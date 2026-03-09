@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use domain::{
     Identifiable,
-    aggregates::Message,
+    aggregates::{GameSession, Message},
     value_objects::{GameSessionId, MessageId, MessageRole, UserId},
 };
 
@@ -12,7 +12,7 @@ use crate::{
         Clock, GameSessionRepository, IdGenerator, MessageRepository, PortError, RepoError,
         UserAccessPort,
     },
-    services::PromptAssemblyService,
+    services::{PromptAssemblyResult, PromptAssemblyService},
     use_cases::UseCase,
 };
 
@@ -24,7 +24,7 @@ pub struct SendMessageCommand {
 
 pub struct SendMessageResponse {
     pub player_message_id: MessageId,
-    pub text: String,
+    pub interaction: PromptAssemblyResult,
 }
 
 pub struct SendMessageUseCase {
@@ -107,14 +107,11 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
             })?;
 
         // Get a llm response
-        let llm_response = self
-            .prompt_assembly
-            .assemble(&command.session_id, &message)
-            .await?;
+        let interaction = self.prompt_assembly.assemble(&session, &message).await?;
 
         Ok(SendMessageResponse {
             player_message_id: *message.id(),
-            text: llm_response,
+            interaction,
         })
     }
 }

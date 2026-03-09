@@ -1,4 +1,5 @@
 mod clock;
+mod context_object_repository;
 mod game_session_repository;
 mod id_generator;
 mod message_repository;
@@ -7,6 +8,7 @@ mod user_access;
 use thiserror::Error;
 
 pub use clock::*;
+pub use context_object_repository::*;
 pub use game_session_repository::*;
 pub use id_generator::*;
 pub use message_repository::*;

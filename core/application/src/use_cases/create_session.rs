@@ -18,6 +18,8 @@ pub struct CreateSessionCommand {
 
 pub struct CreateSessionResponse {
     pub session_id: GameSessionId,
+    pub seed: i64,
+    pub created_ts: chrono::DateTime<chrono::Utc>,
 }
 
 pub struct CreateSessionUseCase {
@@ -56,11 +58,13 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
             return Err(AppError::Forbidden);
         }
 
+        let seed: i64 = 0; // TODO
+        let created_ts = self.clock.now().await;
         let session = GameSession::new(
             self.id_generator.next_game_session_id().await,
             command.owner_id,
             GameSessionConfig::default(),
-            self.clock.now().await,
+            created_ts,
         );
         self.sessions_repo
             .create(&session)
@@ -73,6 +77,8 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
 
         Ok(CreateSessionResponse {
             session_id: *session.id(),
+            seed,
+            created_ts,
         })
     }
 }

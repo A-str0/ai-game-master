@@ -71,8 +71,4 @@ impl GameSession {
     pub fn last_activity_ts(&self) -> Option<DateTime<Utc>> {
         self.last_activity_ts
     }
-
-    pub fn record_activity(&mut self, at: DateTime<Utc>) {
-        self.last_activity_ts = Some(at);
-    }
 }

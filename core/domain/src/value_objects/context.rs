@@ -1,5 +1,5 @@
 /// ValueObject
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ContextObjectType {
     Npc,
     Place,

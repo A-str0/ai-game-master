@@ -37,6 +37,7 @@ pub struct GetSessionResponse {
     pub retrivial_k: u8,
     pub memory_budget: u32,
     pub session_mode: GameSessionModeDTO,
+    pub last_activity_ts: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 pub struct GetSessionUseCase {
@@ -89,6 +90,7 @@ impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
             retrivial_k: session.config().retrivial_k(),
             memory_budget: session.config().memory_budget(),
             session_mode: GameSessionModeDTO::from(*session.config().session_mode()),
+            last_activity_ts: session.last_activity_ts(),
         })
     }
 }
