@@ -1,11 +1,11 @@
 mod context;
+mod game_session;
 mod ids;
 mod message;
 mod provenance;
-mod session;
 
 pub use context::ContextObjectType;
+pub use game_session::{GameSessionConfig, GameSessionMode, ScoringWeights};
 pub use ids::{ContextObjectId, GameSessionId, MessageId, UserId};
 pub use message::MessageRole;
 pub use provenance::Provenance;
-pub use session::{GameSessionConfig, GameSessionMode, ScoringWeights};

@@ -1,0 +1,10 @@
+[package]
+name = "domain"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = {version = "0.4.42", features = ["serde"]}
+uuid = "1.21.0"
+derive_more = {version = "2.1.1", features = ["from", "into"]}
+thiserror = "2.0.18"

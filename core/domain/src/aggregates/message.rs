@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::domain::{
+use crate::{
     DomainError, DomainResult, Identifiable,
     value_objects::{GameSessionId, MessageId, MessageRole},
 };
@@ -19,13 +19,13 @@ pub struct Message {
 impl Message {
     fn validate(text: &str, embedding_id: Option<&str>) -> DomainResult<()> {
         if text.trim().is_empty() {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "Message text must not be empty",
             )));
         }
 
         if embedding_id.is_some_and(|id| id.trim().is_empty()) {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "Message embedding_id must not be empty when provided",
             )));
         }
@@ -34,6 +34,7 @@ impl Message {
     }
 
     pub fn new(
+        id: MessageId,
         session_id: GameSessionId,
         role: MessageRole,
         text: &str,
@@ -43,7 +44,7 @@ impl Message {
         Self::validate(text, embedding_id)?;
 
         Ok(Self {
-            id: MessageId::new(),
+            id,
             session_id,
             role,
             text: text.to_owned(),

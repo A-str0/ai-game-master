@@ -1,12 +1,18 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
-use serde_json::Value;
 
-use crate::domain::{
+use crate::{
     DomainError, DomainResult, Identifiable,
     value_objects::{ContextObjectId, ContextObjectType, Provenance},
 };
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum AttributeValue {
+    Text(String),
+    Number(f64),
+    Bool(bool),
+}
 
 /// Aggregate
 #[derive(Debug)]
@@ -16,16 +22,16 @@ pub struct ContextObject {
     title: String,
     short_desc: String,
     long_desc: Option<String>,
-    attributes: HashMap<String, Value>,
+    attributes: HashMap<String, AttributeValue>,
     place_id: Option<ContextObjectId>,
     importance_score: f32,
 }
 
 impl ContextObject {
-    fn validate_attributes(attributes: &HashMap<String, Value>) -> DomainResult<()> {
+    fn validate_attributes(attributes: &HashMap<String, AttributeValue>) -> DomainResult<()> {
         for key in attributes.keys() {
             if key.trim().is_empty() {
-                return Err(DomainError::Validation(String::from(
+                return Err(DomainError::InvariantViolation(String::from(
                     "ContextObject attributes must not contain empty keys",
                 )));
             }
@@ -41,25 +47,25 @@ impl ContextObject {
         importance_score: f32,
     ) -> DomainResult<()> {
         if title.trim().is_empty() {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "ContextObject title must not be empty",
             )));
         }
 
         if short_desc.trim().is_empty() {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "ContextObject short_desc must not be empty",
             )));
         }
 
         if long_desc.is_some_and(|d| d.trim().is_empty()) {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "ContextObject long_desc must not be empty when provided",
             )));
         }
 
         if !importance_score.is_finite() {
-            return Err(DomainError::Validation(String::from(
+            return Err(DomainError::InvariantViolation(String::from(
                 "ContextObject importance_score must be a finite number",
             )));
         }
@@ -68,11 +74,12 @@ impl ContextObject {
     }
 
     pub fn new(
+        id: ContextObjectId,
         object_type: ContextObjectType,
         title: &str,
         short_desc: &str,
         long_desc: Option<&str>,
-        attributes: HashMap<String, Value>,
+        attributes: HashMap<String, AttributeValue>,
         place_id: Option<ContextObjectId>,
         importance_score: f32,
     ) -> DomainResult<Self> {
@@ -80,7 +87,7 @@ impl ContextObject {
         Self::validate_attributes(&attributes)?;
 
         Ok(Self {
-            id: ContextObjectId::new(),
+            id,
             object_type,
             title: title.to_owned(),
             short_desc: short_desc.to_owned(),
@@ -97,7 +104,7 @@ impl ContextObject {
         title: String,
         short_desc: String,
         long_desc: Option<String>,
-        attributes: HashMap<String, Value>,
+        attributes: HashMap<String, AttributeValue>,
         place_id: Option<ContextObjectId>,
         importance_score: f32,
     ) -> DomainResult<Self> {
@@ -132,7 +139,7 @@ impl ContextObject {
         self.long_desc.as_ref()
     }
 
-    pub fn attributes(&self) -> &HashMap<String, Value> {
+    pub fn attributes(&self) -> &HashMap<String, AttributeValue> {
         &self.attributes
     }
 
