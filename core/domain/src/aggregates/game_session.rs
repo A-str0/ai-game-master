@@ -25,12 +25,17 @@ impl Identifiable for GameSession {
 }
 
 impl GameSession {
-    pub fn new(owner_id: UserId, config: GameSessionConfig) -> Self {
+    pub fn new(
+        id: GameSessionId,
+        owner_id: UserId,
+        config: GameSessionConfig,
+        created_ts: DateTime<Utc>,
+    ) -> Self {
         Self {
-            id: GameSessionId::new(),
+            id,
             owner_id,
             config,
-            created_ts: Utc::now(),
+            created_ts,
             last_activity_ts: None,
         }
     }
@@ -65,5 +70,9 @@ impl GameSession {
 
     pub fn last_activity_ts(&self) -> Option<DateTime<Utc>> {
         self.last_activity_ts
+    }
+
+    pub fn record_activity(&mut self, at: DateTime<Utc>) {
+        self.last_activity_ts = Some(at);
     }
 }

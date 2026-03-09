@@ -1,5 +1,4 @@
 use thiserror::Error;
-use uuid::Uuid;
 
 pub mod ports;
 pub mod service;
@@ -8,7 +7,7 @@ pub mod use_cases;
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("resource not found")]
-    NotFound(Uuid),
+    NotFound(uuid::Uuid),
     #[error("access denied")]
     Forbidden,
     #[error("conflict")]
@@ -21,5 +20,4 @@ pub enum AppError {
 
 pub type AppResult<T> = Result<T, AppError>;
 
-#[tokio::main]
-async fn main() {}
+fn main() {}

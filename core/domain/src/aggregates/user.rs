@@ -13,3 +13,9 @@ impl Identifiable for User {
         &self.id
     }
 }
+
+impl User {
+    pub fn new(id: UserId) -> Self {
+        Self { id }
+    }
+}

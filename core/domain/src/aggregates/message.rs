@@ -34,6 +34,7 @@ impl Message {
     }
 
     pub fn new(
+        id: MessageId,
         session_id: GameSessionId,
         role: MessageRole,
         text: &str,
@@ -43,7 +44,7 @@ impl Message {
         Self::validate(text, embedding_id)?;
 
         Ok(Self {
-            id: MessageId::new(),
+            id,
             session_id,
             role,
             text: text.to_owned(),

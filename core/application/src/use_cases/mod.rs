@@ -9,6 +9,6 @@ pub use send_message::*;
 use crate::AppResult;
 
 #[async_trait::async_trait]
-trait UseCase<C, O> {
+pub trait UseCase<C, O> {
     async fn execute(&self, command: C) -> AppResult<O>;
 }

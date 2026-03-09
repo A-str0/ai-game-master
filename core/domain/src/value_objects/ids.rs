@@ -5,10 +5,6 @@ use uuid::Uuid;
 pub struct GameSessionId(pub Uuid);
 
 impl GameSessionId {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-
     pub fn nil() -> Self {
         Self(Uuid::nil())
     }
@@ -18,10 +14,6 @@ impl GameSessionId {
 pub struct ContextObjectId(pub Uuid);
 
 impl ContextObjectId {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-
     pub fn nil() -> Self {
         Self(Uuid::nil())
     }
@@ -31,10 +23,6 @@ impl ContextObjectId {
 pub struct UserId(pub Uuid);
 
 impl UserId {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-
     pub fn nil() -> Self {
         Self(Uuid::nil())
     }
@@ -44,10 +32,6 @@ impl UserId {
 pub struct MessageId(pub Uuid);
 
 impl MessageId {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-
     pub fn nil() -> Self {
         Self(Uuid::nil())
     }

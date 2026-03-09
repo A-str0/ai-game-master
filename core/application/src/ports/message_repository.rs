@@ -1,8 +1,8 @@
-use domain::value_objects::{GameSessionId, UserId};
+use domain::aggregates::Message;
 
 use crate::ports::RepoResult;
 
 #[async_trait::async_trait]
 pub trait MessageRepository: Send + Sync {
-    async fn create(&self, session_id: GameSessionId, owner_id: UserId) -> RepoResult<()>;
+    async fn create(&self, message: &Message) -> RepoResult<()>;
 }

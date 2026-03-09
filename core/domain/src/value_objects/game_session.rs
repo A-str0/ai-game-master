@@ -33,6 +33,35 @@ impl Default for ScoringWeights {
 }
 
 impl ScoringWeights {
+    pub fn new(semantic: f32, recency: f32, importance: f32, proximity: f32) -> DomainResult<Self> {
+        for (name, value) in [
+            ("semantic", semantic),
+            ("recency", recency),
+            ("importance", importance),
+            ("proximity", proximity),
+        ] {
+            if !value.is_finite() || !(0.0..=1.0).contains(&value) {
+                return Err(crate::DomainError::InvariantViolation(format!(
+                    "ScoringWeights {name} must be between 0.0 and 1.0"
+                )));
+            }
+        }
+
+        let total = semantic + recency + importance + proximity;
+        if (total - 1.0).abs() > 0.000_1 {
+            return Err(crate::DomainError::InvariantViolation(String::from(
+                "ScoringWeights must sum to 1.0",
+            )));
+        }
+
+        Ok(Self {
+            semantic,
+            recency,
+            importance,
+            proximity,
+        })
+    }
+
     pub fn semantic(&self) -> f32 {
         self.semantic
     }
@@ -70,7 +99,6 @@ impl Default for GameSessionConfig {
     }
 }
 
-// TODO: пересмотреть new() и restore()
 impl GameSessionConfig {
     pub fn new(
         retrivial_k: u8,
@@ -78,6 +106,18 @@ impl GameSessionConfig {
         scoring_weights: ScoringWeights,
         session_mode: GameSessionMode,
     ) -> DomainResult<Self> {
+        if retrivial_k == 0 {
+            return Err(crate::DomainError::InvariantViolation(String::from(
+                "GameSessionConfig retrivial_k must be greater than 0",
+            )));
+        }
+
+        if memory_budget == 0 {
+            return Err(crate::DomainError::InvariantViolation(String::from(
+                "GameSessionConfig memory_budget must be greater than 0",
+            )));
+        }
+
         Ok(Self {
             retrivial_k,
             memory_budget,
@@ -91,13 +131,8 @@ impl GameSessionConfig {
         memory_budget: u32,
         scoring_weights: ScoringWeights,
         session_mode: GameSessionMode,
-    ) -> Self {
-        Self {
-            retrivial_k,
-            memory_budget,
-            scoring_weights,
-            session_mode,
-        }
+    ) -> DomainResult<Self> {
+        Self::new(retrivial_k, memory_budget, scoring_weights, session_mode)
     }
 
     pub fn retrivial_k(&self) -> u8 {
