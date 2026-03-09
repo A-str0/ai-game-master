@@ -1,2 +1,2 @@
 #[async_trait::async_trait]
-pub trait PromptAssemblyService {}
+pub trait PromptAssemblyService: Send + Sync {}

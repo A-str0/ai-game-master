@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use domain::{
-    Identifiable,
-    value_objects::{GameSessionId, GameSessionMode, UserId},
-};
-// use serde::{Deserialize, Serialize};
+use domain::Identifiable;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{
     AppError,
@@ -12,16 +10,22 @@ use crate::{
     use_cases::{AppResult, UseCase},
 };
 
-pub struct GetSessionCommand(GameSessionId);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+pub enum GameSessionModeDTO {
+    Solo,
+    Multi,
+}
 
-// TODO
-// #[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
+pub struct GetSessionCommand(Uuid);
+
+#[derive(Serialize, Deserialize)]
 pub struct GetSessionResponse {
-    pub id: GameSessionId,
-    pub owner_id: UserId,
+    pub id: Uuid,
+    pub owner_id: Uuid,
     pub retrivial_k: u8,
     pub memory_budget: u32,
-    pub session_mode: GameSessionMode,
+    pub session_mode: GameSessionModeDTO,
 }
 
 pub struct GetSessionUseCase {
@@ -52,7 +56,7 @@ impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
 
         let session = self
             .sessions_repo
-            .get_by_id(&command.0)
+            .get_by_id(&command.0.into())
             .await
             .map_err(|err| match err {
                 RepoError::NotFound => AppError::NotFound(command.0.into()),
@@ -65,11 +69,14 @@ impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
         }
 
         Ok(GetSessionResponse {
-            id: *session.id(),
-            owner_id: *session.owner_id(),
+            id: (*session.id()).into(),
+            owner_id: (*session.owner_id()).into(),
             retrivial_k: session.config().retrivial_k(),
             memory_budget: session.config().memory_budget(),
-            session_mode: *session.config().session_mode(),
+            session_mode: match *session.config().session_mode() {
+                domain::value_objects::GameSessionMode::Solo => GameSessionModeDTO::Solo,
+                domain::value_objects::GameSessionMode::Multi => GameSessionModeDTO::Multi,
+            },
         })
     }
 }

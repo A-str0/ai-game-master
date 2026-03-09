@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use domain::{
-    Identifiable,
-    aggregates::GameSession,
-    value_objects::{GameSessionConfig, GameSessionId, UserId},
-};
+use domain::{Identifiable, aggregates::GameSession, value_objects::GameSessionConfig};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{
     AppError,
@@ -12,12 +10,14 @@ use crate::{
     use_cases::{AppResult, UseCase},
 };
 
+#[derive(Serialize, Deserialize)]
 pub struct CreateSessionCommand {
-    pub owner_id: UserId,
+    pub owner_id: Uuid,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct CreateSessionResponse {
-    pub session_id: GameSessionId,
+    pub session_id: Uuid,
 }
 
 pub struct CreateSessionUseCase {
@@ -46,11 +46,11 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
             PortError::Unavailable => AppError::Unavailable,
         })?;
 
-        if current_user.id() != &command.owner_id {
+        if Uuid::from(*current_user.id()) != command.owner_id {
             return Err(AppError::Forbidden);
         }
 
-        let session = GameSession::new(command.owner_id, GameSessionConfig::default()); // TODO: change from default()
+        let session = GameSession::new(command.owner_id.into(), GameSessionConfig::default()); // TODO: change from default()
         self.sessions_repo
             .create(&session)
             .await
@@ -61,7 +61,7 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
             })?;
 
         Ok(CreateSessionResponse {
-            session_id: *session.id(),
+            session_id: (*session.id()).into(),
         })
     }
 }

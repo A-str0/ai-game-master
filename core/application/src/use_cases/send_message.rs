@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use domain::{
-    Identifiable,
-    value_objects::{GameSessionId, UserId},
-};
+use domain::Identifiable;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{
     AppError, AppResult,
@@ -12,12 +11,14 @@ use crate::{
     use_cases::UseCase,
 };
 
+#[derive(Serialize, Deserialize)]
 pub struct SendMessageCommand {
-    session_id: GameSessionId,
-    owner_id: UserId,
+    session_id: Uuid,
+    owner_id: Uuid,
     text: String, // TODO: maybe &str???
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct SendMessageResponse {}
 
 pub struct SendMessageUseCase {
@@ -54,7 +55,7 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
 
         let session = self
             .session_repo
-            .get_by_id(&command.session_id)
+            .get_by_id(&command.session_id.into())
             .await
             .map_err(|err| match err {
                 RepoError::NotFound => AppError::NotFound(command.session_id.into()),
