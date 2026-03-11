@@ -5,7 +5,7 @@ diesel::table! {
     game_sessions(id) {
         id -> Uuid,
         owner_id -> Uuid,
-        retrivial_k -> Int8,
+        retrivial_k -> Int2,
         memory_budget -> Integer,
         session_mode -> SessionModeDbMapping,
         created_ts -> Timestamptz,

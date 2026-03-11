@@ -1,19 +1,60 @@
-use application::ports::{GameSessionRepository, RepoResult};
-use domain::{aggregates::GameSession, value_objects::GameSessionId};
+use application::ports::{GameSessionRepository, RepoError, RepoResult};
+use diesel::{QueryDsl, RunQueryDsl};
+use domain::{Identifiable, aggregates::GameSession, value_objects::GameSessionId};
 
-pub struct PgGameSessionRepository {}
+use super::{
+    models::{GameSessionChangeset, GameSessionRow, NewGameSessionRow},
+    schema::game_sessions::dsl,
+};
+use crate::repositories::postgres::{PgPool, PgRepoError, connection};
+
+#[derive(Clone)]
+pub struct PgGameSessionRepository {
+    pool: PgPool,
+}
+
+impl PgGameSessionRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
 
 #[async_trait::async_trait]
 impl GameSessionRepository for PgGameSessionRepository {
     async fn create(&self, session: &GameSession) -> RepoResult<()> {
-        todo!()
+        let mut conn = connection(&self.pool)?;
+        let row = NewGameSessionRow::try_from(session)?;
+
+        diesel::insert_into(dsl::game_sessions)
+            .values(&row)
+            .execute(&mut conn)
+            .map_err(PgRepoError::from)?;
+
+        Ok(())
     }
 
     async fn get_by_id(&self, id: &GameSessionId) -> RepoResult<GameSession> {
-        todo!()
+        let mut conn = connection(&self.pool)?;
+        let row = dsl::game_sessions
+            .find(id.0)
+            .first::<GameSessionRow>(&mut conn)
+            .map_err(PgRepoError::from)?;
+
+        row.try_into()
     }
 
     async fn update(&self, session: &GameSession) -> RepoResult<()> {
-        todo!()
+        let mut conn = connection(&self.pool)?;
+        let changes = GameSessionChangeset::try_from(session)?;
+        let updated_rows = diesel::update(dsl::game_sessions.find(session.id().0))
+            .set(&changes)
+            .execute(&mut conn)
+            .map_err(PgRepoError::from)?;
+
+        if updated_rows == 0 {
+            return Err(RepoError::NotFound);
+        }
+
+        Ok(())
     }
 }
