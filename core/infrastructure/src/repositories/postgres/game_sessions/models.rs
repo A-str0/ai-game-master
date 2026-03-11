@@ -41,6 +41,7 @@ impl From<SessionModeDb> for GameSessionMode {
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = game_sessions)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct GameSessionRow {
     pub id: Uuid,
     pub owner_id: Uuid,
@@ -53,6 +54,7 @@ pub struct GameSessionRow {
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = game_sessions)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewGameSessionRow {
     pub id: Uuid,
     pub owner_id: Uuid,
@@ -65,6 +67,7 @@ pub struct NewGameSessionRow {
 
 #[derive(Debug, AsChangeset)]
 #[diesel(table_name = game_sessions)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct GameSessionChangeset {
     pub owner_id: Uuid,
     pub retrivial_k: i16,

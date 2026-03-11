@@ -42,6 +42,7 @@ impl From<MessageRoleDb> for MessageRole {
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = messages)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct MessageRow {
     pub id: Uuid,
     pub session_id: Uuid,
@@ -52,6 +53,7 @@ pub struct MessageRow {
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = messages)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewMessageRow {
     pub id: Uuid,
     pub session_id: Uuid,

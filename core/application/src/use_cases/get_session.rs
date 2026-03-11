@@ -7,7 +7,7 @@ use domain::{
 
 use crate::{
     AppError,
-    ports::{GameSessionRepository, PortError, RepoError, UserAccessPort},
+    ports::{CurrentUserError, CurrentUserPort, GameSessionRepository, RepoError},
     use_cases::{AppResult, UseCase},
 };
 
@@ -28,7 +28,6 @@ impl From<GameSessionMode> for GameSessionModeDTO {
 
 pub struct GetSessionCommand {
     pub session_id: GameSessionId,
-    pub requester_id: UserId,
 }
 
 pub struct GetSessionResponse {
@@ -42,17 +41,17 @@ pub struct GetSessionResponse {
 
 pub struct GetSessionUseCase {
     sessions_repo: Arc<dyn GameSessionRepository>,
-    user_access: Arc<dyn UserAccessPort>,
+    current_user: Arc<dyn CurrentUserPort>,
 }
 
 impl GetSessionUseCase {
     pub fn new(
         sessions_repo: Arc<dyn GameSessionRepository>,
-        user_access: Arc<dyn UserAccessPort>,
+        current_user: Arc<dyn CurrentUserPort>,
     ) -> Self {
         Self {
             sessions_repo,
-            user_access,
+            current_user,
         }
     }
 }
@@ -60,11 +59,15 @@ impl GetSessionUseCase {
 #[async_trait::async_trait]
 impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
     async fn execute(&self, command: GetSessionCommand) -> AppResult<GetSessionResponse> {
-        let current_user = self.user_access.get_user().await.map_err(|err| match err {
-            PortError::NotFound => AppError::NotFound(command.requester_id.0),
-            PortError::Forbidden => AppError::Forbidden,
-            PortError::Unavailable => AppError::Unavailable,
-        })?;
+        let current_user_id =
+            self.current_user
+                .current_user_id()
+                .await
+                .map_err(|err| match err {
+                    CurrentUserError::Unauthenticated => AppError::Unauthenticated,
+                    CurrentUserError::Forbidden => AppError::Forbidden,
+                    CurrentUserError::Unavailable => AppError::Unavailable,
+                })?;
 
         let session = self
             .sessions_repo
@@ -76,11 +79,7 @@ impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
                 RepoError::Unavailable => AppError::Unavailable,
             })?;
 
-        if current_user.id() != &command.requester_id {
-            return Err(AppError::Forbidden);
-        }
-
-        if session.owner_id() != current_user.id() {
+        if session.owner_id() != &current_user_id {
             return Err(AppError::Forbidden);
         }
 

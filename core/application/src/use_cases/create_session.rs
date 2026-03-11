@@ -3,18 +3,16 @@ use std::sync::Arc;
 use domain::{
     Identifiable,
     aggregates::GameSession,
-    value_objects::{GameSessionConfig, GameSessionId, RngState, UserId},
+    value_objects::{GameSessionConfig, GameSessionId, RngState},
 };
 
 use crate::{
     AppError,
-    ports::{Clock, GameSessionRepository, IdGenerator, PortError, UserAccessPort},
+    ports::{Clock, CurrentUserError, CurrentUserPort, GameSessionRepository, IdGenerator},
     use_cases::{AppResult, UseCase},
 };
 
-pub struct CreateSessionCommand {
-    pub owner_id: UserId,
-}
+pub struct CreateSessionCommand;
 
 pub struct CreateSessionResponse {
     pub session_id: GameSessionId,
@@ -24,7 +22,7 @@ pub struct CreateSessionResponse {
 
 pub struct CreateSessionUseCase {
     sessions_repo: Arc<dyn GameSessionRepository>,
-    user_access: Arc<dyn UserAccessPort>,
+    current_user: Arc<dyn CurrentUserPort>,
     clock: Arc<dyn Clock>,
     id_generator: Arc<dyn IdGenerator>,
 }
@@ -32,13 +30,13 @@ pub struct CreateSessionUseCase {
 impl CreateSessionUseCase {
     pub fn new(
         sessions_repo: Arc<dyn GameSessionRepository>,
-        user_access: Arc<dyn UserAccessPort>,
+        current_user: Arc<dyn CurrentUserPort>,
         clock: Arc<dyn Clock>,
         id_generator: Arc<dyn IdGenerator>,
     ) -> Self {
         Self {
             sessions_repo,
-            user_access,
+            current_user,
             clock,
             id_generator,
         }
@@ -47,23 +45,23 @@ impl CreateSessionUseCase {
 
 #[async_trait::async_trait]
 impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCase {
-    async fn execute(&self, command: CreateSessionCommand) -> AppResult<CreateSessionResponse> {
-        let current_user = self.user_access.get_user().await.map_err(|err| match err {
-            PortError::NotFound => AppError::NotFound(command.owner_id.0),
-            PortError::Forbidden => AppError::Forbidden,
-            PortError::Unavailable => AppError::Unavailable,
-        })?;
-
-        if current_user.id() != &command.owner_id {
-            return Err(AppError::Forbidden);
-        }
+    async fn execute(&self, _command: CreateSessionCommand) -> AppResult<CreateSessionResponse> {
+        let current_user_id =
+            self.current_user
+                .current_user_id()
+                .await
+                .map_err(|err| match err {
+                    CurrentUserError::Unauthenticated => AppError::Unauthenticated,
+                    CurrentUserError::Forbidden => AppError::Forbidden,
+                    CurrentUserError::Unavailable => AppError::Unavailable,
+                })?;
 
         let rng_state = RngState::default();
         let seed = i64::try_from(rng_state.seed()).map_err(|_| AppError::Unavailable)?;
         let created_ts = self.clock.now().await;
         let session = GameSession::new(
             self.id_generator.next_game_session_id().await,
-            command.owner_id,
+            current_user_id,
             GameSessionConfig::default(),
             rng_state,
             created_ts,
@@ -72,7 +70,7 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
             .create(&session)
             .await
             .map_err(|err| match err {
-                crate::ports::RepoError::NotFound => AppError::NotFound(command.owner_id.0),
+                crate::ports::RepoError::NotFound => AppError::Unavailable,
                 crate::ports::RepoError::Conflict => AppError::Conflict,
                 crate::ports::RepoError::Unavailable => AppError::Unavailable,
             })?;

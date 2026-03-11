@@ -8,6 +8,8 @@ pub mod use_cases;
 pub enum AppError {
     #[error("resource not found")]
     NotFound(uuid::Uuid),
+    #[error("authentication required")]
+    Unauthenticated,
     #[error("access denied")]
     Forbidden,
     #[error("conflict")]
