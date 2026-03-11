@@ -13,7 +13,6 @@ pub struct Message {
     role: MessageRole,
     text: String,
     ts: DateTime<Utc>,
-    embedding_id: Option<String>,
 }
 
 impl Message {
@@ -49,7 +48,6 @@ impl Message {
             role,
             text: text.to_owned(),
             ts,
-            embedding_id: embedding_id.map(str::to_owned),
         })
     }
 
@@ -69,7 +67,6 @@ impl Message {
             role,
             text,
             ts,
-            embedding_id,
         })
     }
 
@@ -87,10 +84,6 @@ impl Message {
 
     pub fn ts(&self) -> DateTime<Utc> {
         self.ts
-    }
-
-    pub fn embedding_id(&self) -> Option<&str> {
-        self.embedding_id.as_deref()
     }
 }
 
