@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     Identifiable,
-    value_objects::{GameSessionConfig, GameSessionId, UserId},
+    value_objects::{GameSessionConfig, GameSessionId, RngState, UserId},
 };
 
 /// Aggregate root
@@ -11,7 +11,7 @@ pub struct GameSession {
     id: GameSessionId,
     owner_id: UserId,
     config: GameSessionConfig,
-    // TODO: rng_state: RngState
+    rng_state: RngState,
     created_ts: DateTime<Utc>,
     last_activity_ts: Option<DateTime<Utc>>,
 }
