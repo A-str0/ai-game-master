@@ -29,12 +29,14 @@ impl GameSession {
         id: GameSessionId,
         owner_id: UserId,
         config: GameSessionConfig,
+        rng_state: RngState,
         created_ts: DateTime<Utc>,
     ) -> Self {
         Self {
             id,
             owner_id,
             config,
+            rng_state,
             created_ts,
             last_activity_ts: None,
         }
@@ -44,6 +46,7 @@ impl GameSession {
         id: GameSessionId,
         owner_id: UserId,
         config: GameSessionConfig,
+        rng_state: RngState,
         created_ts: DateTime<Utc>,
         last_activity_ts: Option<DateTime<Utc>>,
     ) -> Self {
@@ -51,6 +54,7 @@ impl GameSession {
             id,
             owner_id,
             config,
+            rng_state,
             created_ts,
             last_activity_ts,
         }
