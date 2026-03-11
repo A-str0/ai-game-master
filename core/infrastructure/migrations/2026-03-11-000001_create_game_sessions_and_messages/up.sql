@@ -1,7 +1,18 @@
-CREATE TYPE "SessionMode" AS ENUM ('Solo', 'Multi');
-CREATE TYPE "MessageRole" AS ENUM ('Player', 'Gm', 'System');
+DO $$
+BEGIN
+    CREATE TYPE "SessionMode" AS ENUM ('Solo', 'Multi');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TABLE game_sessions (
+DO $$
+BEGIN
+    CREATE TYPE "MessageRole" AS ENUM ('Player', 'Gm', 'System');
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS game_sessions (
     id UUID PRIMARY KEY,
     owner_id UUID NOT NULL,
     retrivial_k SMALLINT NOT NULL CHECK (retrivial_k > 0),
@@ -11,7 +22,7 @@ CREATE TABLE game_sessions (
     last_activity_ts TIMESTAMPTZ NULL
 );
 
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY,
     session_id UUID NOT NULL REFERENCES game_sessions(id) ON DELETE CASCADE,
     role "MessageRole" NOT NULL,
@@ -19,5 +30,5 @@ CREATE TABLE messages (
     ts TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX messages_session_id_ts_idx
+CREATE INDEX IF NOT EXISTS messages_session_id_ts_idx
     ON messages (session_id, ts DESC, id DESC);

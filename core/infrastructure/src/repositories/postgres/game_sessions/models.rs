@@ -16,6 +16,7 @@ use super::schema::game_sessions;
 
 #[derive(Debug, Clone, Copy, DbEnum, SqlType)]
 #[PgType = "SessionMode"]
+#[DbValueStyle = "PascalCase"]
 pub enum SessionModeDb {
     Solo,
     Multi,

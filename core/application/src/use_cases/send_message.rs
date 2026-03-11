@@ -103,6 +103,25 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
 
         let interaction = self.prompt_assembly.assemble(&session, &message).await?;
 
+        let gm_message = Message::new(
+            interaction.gm_message_id,
+            command.session_id,
+            MessageRole::Gm,
+            &interaction.gm_text,
+            self.clock.now().await,
+            None,
+        )
+        .map_err(AppError::from)?;
+
+        self.message_repo
+            .create(&gm_message)
+            .await
+            .map_err(|err| match err {
+                RepoError::NotFound => AppError::NotFound(command.session_id.0),
+                RepoError::Conflict => AppError::Conflict,
+                RepoError::Unavailable => AppError::Unavailable,
+            })?;
+
         Ok(SendMessageResponse {
             player_message_id: *message.id(),
             interaction,

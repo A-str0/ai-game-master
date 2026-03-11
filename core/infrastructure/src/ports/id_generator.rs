@@ -1,18 +1,19 @@
 use domain::value_objects::{ContextObjectId, GameSessionId, MessageId};
+use uuid::Uuid;
 
 pub struct IdGenerator;
 
 #[async_trait::async_trait]
 impl application::ports::IdGenerator for IdGenerator {
     async fn next_game_session_id(&self) -> GameSessionId {
-        todo!()
+        GameSessionId(Uuid::new_v4())
     }
 
     async fn next_message_id(&self) -> MessageId {
-        todo!()
+        MessageId(Uuid::new_v4())
     }
 
     async fn next_context_object_id(&self) -> ContextObjectId {
-        todo!()
+        ContextObjectId(Uuid::new_v4())
     }
 }

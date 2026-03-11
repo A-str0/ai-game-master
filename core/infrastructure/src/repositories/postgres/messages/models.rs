@@ -14,6 +14,7 @@ use super::schema::messages;
 
 #[derive(Debug, Clone, Copy, DbEnum, SqlType)]
 #[PgType = "MessageRole"]
+#[DbValueStyle = "PascalCase"]
 pub enum MessageRoleDb {
     Player,
     Gm,
