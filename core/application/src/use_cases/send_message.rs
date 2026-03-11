@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use domain::{
     Identifiable,
-    aggregates::{GameSession, Message},
+    aggregates::Message,
     value_objects::{GameSessionId, MessageId, MessageRole, UserId},
 };
 
