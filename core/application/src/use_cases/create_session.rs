@@ -3,7 +3,7 @@ use std::sync::Arc;
 use domain::{
     Identifiable,
     aggregates::GameSession,
-    value_objects::{GameSessionConfig, GameSessionId, UserId},
+    value_objects::{GameSessionConfig, GameSessionId, RngState, UserId},
 };
 
 use crate::{
@@ -58,12 +58,14 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
             return Err(AppError::Forbidden);
         }
 
-        let seed: i64 = 0; // TODO
+        let rng_state = RngState::default();
+        let seed = i64::try_from(rng_state.seed()).map_err(|_| AppError::Unavailable)?;
         let created_ts = self.clock.now().await;
         let session = GameSession::new(
             self.id_generator.next_game_session_id().await,
             command.owner_id,
             GameSessionConfig::default(),
+            rng_state,
             created_ts,
         );
         self.sessions_repo

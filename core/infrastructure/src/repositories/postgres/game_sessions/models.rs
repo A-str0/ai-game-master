@@ -6,7 +6,9 @@ use diesel_derive_enum::DbEnum;
 use domain::{
     Identifiable as DomainIdentifiable,
     aggregates::GameSession,
-    value_objects::{GameSessionConfig, GameSessionId, GameSessionMode, ScoringWeights, UserId},
+    value_objects::{
+        GameSessionConfig, GameSessionId, GameSessionMode, RngState, ScoringWeights, UserId,
+    },
 };
 use uuid::Uuid;
 
@@ -89,6 +91,7 @@ impl TryFrom<GameSessionRow> for GameSession {
             GameSessionId(row.id),
             UserId(row.owner_id),
             config,
+            RngState::default(),
             row.created_ts,
             row.last_activity_ts,
         ))
