@@ -75,4 +75,8 @@ impl GameSession {
     pub fn last_activity_ts(&self) -> Option<DateTime<Utc>> {
         self.last_activity_ts
     }
+
+    pub fn rng_state(&self) -> RngState {
+        self.rng_state
+    }
 }
