@@ -88,7 +88,6 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
             MessageRole::Player,
             &command.text,
             self.clock.now().await,
-            None,
         )
         .map_err(AppError::from)?;
 
@@ -109,7 +108,6 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
             MessageRole::Gm,
             &interaction.gm_text,
             self.clock.now().await,
-            None,
         )
         .map_err(AppError::from)?;
 
