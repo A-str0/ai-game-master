@@ -1,14 +1,19 @@
-use domain::{
-    aggregates::{GameSession, Message},
-    value_objects::MessageId,
-};
+use domain::aggregates::{GameSession, Message};
 
 use crate::AppResult;
 
+/// DTO
 #[derive(Debug, Clone)]
-pub struct PromptAssemblyResult {
-    pub gm_message_id: MessageId,
-    pub gm_text: String,
+pub struct ContextObjectDTO {}
+
+/// DTO
+#[derive(Debug, Clone)]
+pub struct PromptDTO {
+    system_prompt: String,
+    world_summary: String,
+    retrived_objects: Vec<ContextObjectDTO>,
+    player_action: String,
+    instructions: String,
 }
 
 #[async_trait::async_trait]
@@ -17,5 +22,5 @@ pub trait PromptAssemblyService: Send + Sync {
         &self,
         session: &GameSession,
         player_message: &Message,
-    ) -> AppResult<PromptAssemblyResult>;
+    ) -> AppResult<PromptDTO>;
 }
