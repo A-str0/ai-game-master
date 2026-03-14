@@ -1,3 +1,4 @@
+mod agent;
 mod clock;
 mod context_object_repository;
 mod current_user;
@@ -7,6 +8,7 @@ mod message_repository;
 
 use thiserror::Error;
 
+pub use agent::*;
 pub use clock::*;
 pub use context_object_repository::*;
 pub use current_user::*;
