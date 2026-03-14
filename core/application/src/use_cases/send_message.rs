@@ -12,7 +12,7 @@ use crate::{
         Clock, CurrentUserError, CurrentUserPort, GameSessionRepository, IdGenerator,
         MessageRepository, RepoError,
     },
-    services::{PromptAssemblyResult, PromptAssemblyService},
+    services::{Agnet, PromptAssemblyService},
     use_cases::UseCase,
 };
 
@@ -23,7 +23,6 @@ pub struct SendMessageCommand {
 
 pub struct SendMessageResponse {
     pub player_message_id: MessageId,
-    pub interaction: PromptAssemblyResult,
 }
 
 pub struct SendMessageUseCase {
@@ -31,6 +30,7 @@ pub struct SendMessageUseCase {
     message_repo: Arc<dyn MessageRepository>,
     current_user: Arc<dyn CurrentUserPort>,
     prompt_assembly: Arc<dyn PromptAssemblyService>,
+    agent: Arc<dyn Agnet>,
     clock: Arc<dyn Clock>,
     id_generator: Arc<dyn IdGenerator>,
 }
@@ -41,6 +41,7 @@ impl SendMessageUseCase {
         message_repo: Arc<dyn MessageRepository>,
         current_user: Arc<dyn CurrentUserPort>,
         prompt_assembly: Arc<dyn PromptAssemblyService>,
+        agent: Arc<dyn Agnet>,
         clock: Arc<dyn Clock>,
         id_generator: Arc<dyn IdGenerator>,
     ) -> Self {
@@ -49,6 +50,7 @@ impl SendMessageUseCase {
             message_repo,
             current_user,
             prompt_assembly,
+            agent,
             clock,
             id_generator,
         }
@@ -100,13 +102,15 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
                 RepoError::Unavailable => AppError::Unavailable,
             })?;
 
-        let interaction = self.prompt_assembly.assemble(&session, &message).await?;
+        let prompt = self.prompt_assembly.assemble(&session, &message).await?;
+
+        let agent_response = self.agent.generate(prompt).await?;
 
         let gm_message = Message::new(
-            interaction.gm_message_id,
+            self.id_generator.next_message_id().await,
             command.session_id,
             MessageRole::Gm,
-            &interaction.gm_text,
+            &agent_response.0,
             self.clock.now().await,
         )
         .map_err(AppError::from)?;
@@ -122,7 +126,6 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
 
         Ok(SendMessageResponse {
             player_message_id: *message.id(),
-            interaction,
         })
     }
 }

@@ -73,7 +73,6 @@ impl TryFrom<MessageRow> for Message {
             row.role.into(),
             row.text,
             row.ts,
-            None,
         )
         .map_err(|_| RepoError::Unavailable)
     }
