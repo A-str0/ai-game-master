@@ -9,7 +9,7 @@ use domain::{
 use crate::{
     AppError, AppResult,
     ports::{
-        Agent, Clock, CurrentUserError, CurrentUserPort, GameSessionRepository, IdGenerator,
+        AgentPort, Clock, CurrentUserError, CurrentUserPort, GameSessionRepository, IdGenerator,
         MessageRepository, RepoError,
     },
     services::PromptAssemblyService,
@@ -30,7 +30,7 @@ pub struct SendMessageUseCase {
     message_repo: Arc<dyn MessageRepository>,
     current_user: Arc<dyn CurrentUserPort>,
     prompt_assembly: Arc<dyn PromptAssemblyService>,
-    agent: Arc<dyn Agent>,
+    agent: Arc<dyn AgentPort>,
     clock: Arc<dyn Clock>,
     id_generator: Arc<dyn IdGenerator>,
 }
@@ -41,7 +41,7 @@ impl SendMessageUseCase {
         message_repo: Arc<dyn MessageRepository>,
         current_user: Arc<dyn CurrentUserPort>,
         prompt_assembly: Arc<dyn PromptAssemblyService>,
-        agent: Arc<dyn Agent>,
+        agent: Arc<dyn AgentPort>,
         clock: Arc<dyn Clock>,
         id_generator: Arc<dyn IdGenerator>,
     ) -> Self {

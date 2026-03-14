@@ -18,6 +18,6 @@ pub struct AgentPrompt {
 pub struct AgentResponse(pub String);
 
 #[async_trait::async_trait]
-pub trait Agent: Send + Sync {
+pub trait AgentPort: Send + Sync {
     async fn generate(&self, prompt: AgentPrompt) -> AppResult<AgentResponse>;
 }
