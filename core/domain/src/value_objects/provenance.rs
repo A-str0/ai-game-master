@@ -1,7 +1,7 @@
 use crate::{DomainError, DomainResult};
 
 /// ValueObject
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Provenance {
     created_by: String,
     seed: i64,

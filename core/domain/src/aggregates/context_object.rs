@@ -15,7 +15,7 @@ pub enum AttributeValue {
 }
 
 /// Aggregate
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ContextObject {
     id: ContextObjectId,
     object_type: ContextObjectType,
@@ -161,7 +161,7 @@ impl Identifiable for ContextObject {
 }
 
 /// Entity
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ContextObjectMetadata {
     created_ts: DateTime<Utc>,
     updated_ts: Option<DateTime<Utc>>,
