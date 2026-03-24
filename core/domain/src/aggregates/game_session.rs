@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     Identifiable,
-    value_objects::{GameSessionConfig, GameSessionId, UserId},
+    value_objects::{GameSessionConfig, GameSessionId, RngState, UserId},
 };
 
 /// Aggregate root
@@ -11,7 +11,7 @@ pub struct GameSession {
     id: GameSessionId,
     owner_id: UserId,
     config: GameSessionConfig,
-    // TODO: rng_state: RngState
+    rng_state: RngState,
     created_ts: DateTime<Utc>,
     last_activity_ts: Option<DateTime<Utc>>,
 }
@@ -29,12 +29,14 @@ impl GameSession {
         id: GameSessionId,
         owner_id: UserId,
         config: GameSessionConfig,
+        rng_state: RngState,
         created_ts: DateTime<Utc>,
     ) -> Self {
         Self {
             id,
             owner_id,
             config,
+            rng_state,
             created_ts,
             last_activity_ts: None,
         }
@@ -44,6 +46,7 @@ impl GameSession {
         id: GameSessionId,
         owner_id: UserId,
         config: GameSessionConfig,
+        rng_state: RngState,
         created_ts: DateTime<Utc>,
         last_activity_ts: Option<DateTime<Utc>>,
     ) -> Self {
@@ -51,6 +54,7 @@ impl GameSession {
             id,
             owner_id,
             config,
+            rng_state,
             created_ts,
             last_activity_ts,
         }
@@ -72,7 +76,7 @@ impl GameSession {
         self.last_activity_ts
     }
 
-    pub fn record_activity(&mut self, at: DateTime<Utc>) {
-        self.last_activity_ts = Some(at);
+    pub fn rng_state(&self) -> RngState {
+        self.rng_state
     }
 }

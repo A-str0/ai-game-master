@@ -3,14 +3,14 @@ use std::sync::Arc;
 use domain::{
     Identifiable,
     aggregates::Message,
-    value_objects::{GameSessionId, MessageId, MessageRole, UserId},
+    value_objects::{GameSessionId, MessageId, MessageRole},
 };
 
 use crate::{
     AppError, AppResult,
     ports::{
-        Clock, GameSessionRepository, IdGenerator, MessageRepository, PortError, RepoError,
-        UserAccessPort,
+        AgentPort, Clock, CurrentUserError, CurrentUserPort, GameSessionRepository, IdGenerator,
+        MessageRepository, RepoError,
     },
     services::PromptAssemblyService,
     use_cases::UseCase,
@@ -18,20 +18,19 @@ use crate::{
 
 pub struct SendMessageCommand {
     pub session_id: GameSessionId,
-    pub owner_id: UserId,
     pub text: String,
 }
 
 pub struct SendMessageResponse {
     pub player_message_id: MessageId,
-    pub text: String,
 }
 
 pub struct SendMessageUseCase {
     session_repo: Arc<dyn GameSessionRepository>,
     message_repo: Arc<dyn MessageRepository>,
-    user_access: Arc<dyn UserAccessPort>,
+    current_user: Arc<dyn CurrentUserPort>,
     prompt_assembly: Arc<dyn PromptAssemblyService>,
+    agent: Arc<dyn AgentPort>,
     clock: Arc<dyn Clock>,
     id_generator: Arc<dyn IdGenerator>,
 }
@@ -40,16 +39,18 @@ impl SendMessageUseCase {
     pub fn new(
         session_repo: Arc<dyn GameSessionRepository>,
         message_repo: Arc<dyn MessageRepository>,
-        user_access: Arc<dyn UserAccessPort>,
+        current_user: Arc<dyn CurrentUserPort>,
         prompt_assembly: Arc<dyn PromptAssemblyService>,
+        agent: Arc<dyn AgentPort>,
         clock: Arc<dyn Clock>,
         id_generator: Arc<dyn IdGenerator>,
     ) -> Self {
         Self {
             session_repo,
             message_repo,
-            user_access,
+            current_user,
             prompt_assembly,
+            agent,
             clock,
             id_generator,
         }
@@ -59,18 +60,16 @@ impl SendMessageUseCase {
 #[async_trait::async_trait]
 impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
     async fn execute(&self, command: SendMessageCommand) -> AppResult<SendMessageResponse> {
-        // Get user by id
-        let current_user = self.user_access.get_user().await.map_err(|err| match err {
-            PortError::NotFound => AppError::NotFound(command.owner_id.0),
-            PortError::Forbidden => AppError::Forbidden,
-            PortError::Unavailable => AppError::Unavailable,
-        })?;
+        let current_user_id =
+            self.current_user
+                .current_user_id()
+                .await
+                .map_err(|err| match err {
+                    CurrentUserError::Unauthenticated => AppError::Unauthenticated,
+                    CurrentUserError::Forbidden => AppError::Forbidden,
+                    CurrentUserError::Unavailable => AppError::Unavailable,
+                })?;
 
-        if current_user.id() != &command.owner_id {
-            return Err(AppError::Forbidden);
-        }
-
-        // Get session by id
         let session = self
             .session_repo
             .get_by_id(&command.session_id)
@@ -81,22 +80,19 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
                 RepoError::Unavailable => AppError::Unavailable,
             })?;
 
-        if session.owner_id() != current_user.id() {
+        if session.owner_id() != &current_user_id {
             return Err(AppError::Forbidden);
         }
 
-        // Create a Message Aggregate instance
         let message = Message::new(
             self.id_generator.next_message_id().await,
             command.session_id,
             MessageRole::Player,
             &command.text,
             self.clock.now().await,
-            None,
         )
         .map_err(AppError::from)?;
 
-        // Create a message in repo
         self.message_repo
             .create(&message)
             .await
@@ -106,15 +102,30 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
                 RepoError::Unavailable => AppError::Unavailable,
             })?;
 
-        // Get a llm response
-        let llm_response = self
-            .prompt_assembly
-            .assemble(&command.session_id, &message)
-            .await?;
+        let prompt = self.prompt_assembly.assemble(&session, &message).await?;
+
+        let agent_response = self.agent.generate(prompt).await?;
+
+        let gm_message = Message::new(
+            self.id_generator.next_message_id().await,
+            command.session_id,
+            MessageRole::Gm,
+            &agent_response.0,
+            self.clock.now().await,
+        )
+        .map_err(AppError::from)?;
+
+        self.message_repo
+            .create(&gm_message)
+            .await
+            .map_err(|err| match err {
+                RepoError::NotFound => AppError::NotFound(command.session_id.0),
+                RepoError::Conflict => AppError::Conflict,
+                RepoError::Unavailable => AppError::Unavailable,
+            })?;
 
         Ok(SendMessageResponse {
             player_message_id: *message.id(),
-            text: llm_response,
         })
     }
 }

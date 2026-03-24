@@ -13,20 +13,13 @@ pub struct Message {
     role: MessageRole,
     text: String,
     ts: DateTime<Utc>,
-    embedding_id: Option<String>,
 }
 
 impl Message {
-    fn validate(text: &str, embedding_id: Option<&str>) -> DomainResult<()> {
+    fn validate(text: &str) -> DomainResult<()> {
         if text.trim().is_empty() {
             return Err(DomainError::InvariantViolation(String::from(
                 "Message text must not be empty",
-            )));
-        }
-
-        if embedding_id.is_some_and(|id| id.trim().is_empty()) {
-            return Err(DomainError::InvariantViolation(String::from(
-                "Message embedding_id must not be empty when provided",
             )));
         }
 
@@ -39,9 +32,8 @@ impl Message {
         role: MessageRole,
         text: &str,
         ts: DateTime<Utc>,
-        embedding_id: Option<&str>,
     ) -> DomainResult<Self> {
-        Self::validate(text, embedding_id)?;
+        Self::validate(text)?;
 
         Ok(Self {
             id,
@@ -49,7 +41,6 @@ impl Message {
             role,
             text: text.to_owned(),
             ts,
-            embedding_id: embedding_id.map(str::to_owned),
         })
     }
 
@@ -59,9 +50,8 @@ impl Message {
         role: MessageRole,
         text: String,
         ts: DateTime<Utc>,
-        embedding_id: Option<String>,
     ) -> DomainResult<Self> {
-        Self::validate(&text, embedding_id.as_deref())?;
+        Self::validate(&text)?;
 
         Ok(Self {
             id,
@@ -69,7 +59,6 @@ impl Message {
             role,
             text,
             ts,
-            embedding_id,
         })
     }
 
@@ -87,10 +76,6 @@ impl Message {
 
     pub fn ts(&self) -> DateTime<Utc> {
         self.ts
-    }
-
-    pub fn embedding_id(&self) -> Option<&str> {
-        self.embedding_id.as_deref()
     }
 }
 

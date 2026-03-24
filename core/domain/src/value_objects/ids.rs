@@ -1,7 +1,7 @@
 use derive_more::{From, Into};
 use uuid::Uuid;
 
-#[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
+#[derive(Debug, From, Into, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct GameSessionId(pub Uuid);
 
 impl GameSessionId {
@@ -10,7 +10,7 @@ impl GameSessionId {
     }
 }
 
-#[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
+#[derive(Debug, From, Into, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct ContextObjectId(pub Uuid);
 
 impl ContextObjectId {
@@ -19,7 +19,7 @@ impl ContextObjectId {
     }
 }
 
-#[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
+#[derive(Debug, From, Into, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct UserId(pub Uuid);
 
 impl UserId {
@@ -28,7 +28,7 @@ impl UserId {
     }
 }
 
-#[derive(Debug, From, Into, PartialEq, Clone, Copy, Hash)]
+#[derive(Debug, From, Into, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct MessageId(pub Uuid);
 
 impl MessageId {
