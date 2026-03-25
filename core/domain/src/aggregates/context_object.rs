@@ -14,7 +14,7 @@ pub enum AttributeValue {
     Bool(bool),
 }
 
-/// Aggregate
+/// Aggregate Root
 #[derive(Debug, Clone)]
 pub struct ContextObject {
     id: ContextObjectId,
@@ -25,6 +25,9 @@ pub struct ContextObject {
     attributes: HashMap<String, AttributeValue>,
     place_id: Option<ContextObjectId>,
     importance_score: f32,
+    provenance: Provenance,
+    created_ts: DateTime<Utc>,
+    updated_ts: Option<DateTime<Utc>>,
 }
 
 impl ContextObject {
@@ -82,6 +85,9 @@ impl ContextObject {
         attributes: HashMap<String, AttributeValue>,
         place_id: Option<ContextObjectId>,
         importance_score: f32,
+        provenance: Provenance,
+        created_ts: DateTime<Utc>,
+        updated_ts: Option<DateTime<Utc>>,
     ) -> DomainResult<Self> {
         Self::validate(title, short_desc, long_desc, importance_score)?;
         Self::validate_attributes(&attributes)?;
@@ -95,6 +101,9 @@ impl ContextObject {
             attributes,
             place_id,
             importance_score,
+            provenance,
+            created_ts,
+            updated_ts,
         })
     }
 
@@ -107,10 +116,10 @@ impl ContextObject {
         attributes: HashMap<String, AttributeValue>,
         place_id: Option<ContextObjectId>,
         importance_score: f32,
+        provenance: Provenance,
+        created_ts: DateTime<Utc>,
+        updated_ts: Option<DateTime<Utc>>,
     ) -> DomainResult<Self> {
-        Self::validate(&title, &short_desc, long_desc.as_deref(), importance_score)?;
-        Self::validate_attributes(&attributes)?;
-
         Ok(Self {
             id,
             object_type,
@@ -120,6 +129,9 @@ impl ContextObject {
             attributes,
             place_id,
             importance_score,
+            provenance,
+            created_ts,
+            updated_ts,
         })
     }
 
@@ -157,47 +169,5 @@ impl Identifiable for ContextObject {
 
     fn id(&self) -> &Self::Id {
         &self.id
-    }
-}
-
-/// Entity
-#[derive(Debug, Clone)]
-pub struct ContextObjectMetadata {
-    created_ts: DateTime<Utc>,
-    updated_ts: Option<DateTime<Utc>>,
-    provenance: Provenance,
-}
-
-impl ContextObjectMetadata {
-    pub fn new(created_ts: DateTime<Utc>, provenance: Provenance) -> DomainResult<Self> {
-        Ok(Self {
-            created_ts,
-            updated_ts: None,
-            provenance,
-        })
-    }
-
-    pub fn restore(
-        created_ts: DateTime<Utc>,
-        updated_ts: Option<DateTime<Utc>>,
-        provenance: Provenance,
-    ) -> DomainResult<Self> {
-        Ok(Self {
-            created_ts,
-            updated_ts,
-            provenance,
-        })
-    }
-
-    pub fn created_ts(&self) -> DateTime<Utc> {
-        self.created_ts
-    }
-
-    pub fn updated_ts(&self) -> Option<DateTime<Utc>> {
-        self.updated_ts
-    }
-
-    pub fn provenance(&self) -> &Provenance {
-        &self.provenance
     }
 }
