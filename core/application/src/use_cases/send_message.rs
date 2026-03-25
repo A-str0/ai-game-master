@@ -9,8 +9,7 @@ use domain::{
 use crate::{
     AppError, AppResult,
     ports::{
-        AgentPort, Clock, CurrentUserError, CurrentUserPort, GameSessionRepository, IdGenerator,
-        MessageRepository, RepoError,
+        AgentPort, Clock, CurrentUserPort, GameSessionRepository, IdGenerator, MessageRepository,
     },
     services::PromptAssemblyService,
     use_cases::UseCase,
@@ -60,25 +59,9 @@ impl SendMessageUseCase {
 #[async_trait::async_trait]
 impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
     async fn execute(&self, command: SendMessageCommand) -> AppResult<SendMessageResponse> {
-        let current_user_id =
-            self.current_user
-                .current_user_id()
-                .await
-                .map_err(|err| match err {
-                    CurrentUserError::Unauthenticated => AppError::Unauthenticated,
-                    CurrentUserError::Forbidden => AppError::Forbidden,
-                    CurrentUserError::Unavailable => AppError::Unavailable,
-                })?;
+        let current_user_id = self.current_user.current_user_id().await?;
 
-        let session = self
-            .session_repo
-            .get_by_id(&command.session_id)
-            .await
-            .map_err(|err| match err {
-                RepoError::NotFound => AppError::NotFound(command.session_id.0),
-                RepoError::Conflict => AppError::Conflict,
-                RepoError::Unavailable => AppError::Unavailable,
-            })?;
+        let session = self.session_repo.get_by_id(&command.session_id).await?;
 
         if session.owner_id() != &current_user_id {
             return Err(AppError::Forbidden);
@@ -93,14 +76,7 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
         )
         .map_err(AppError::from)?;
 
-        self.message_repo
-            .create(&message)
-            .await
-            .map_err(|err| match err {
-                RepoError::NotFound => AppError::NotFound(command.session_id.0),
-                RepoError::Conflict => AppError::Conflict,
-                RepoError::Unavailable => AppError::Unavailable,
-            })?;
+        self.message_repo.create(&message).await?;
 
         let prompt = self.prompt_assembly.assemble(&session, &message).await?;
 
@@ -115,14 +91,7 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
         )
         .map_err(AppError::from)?;
 
-        self.message_repo
-            .create(&gm_message)
-            .await
-            .map_err(|err| match err {
-                RepoError::NotFound => AppError::NotFound(command.session_id.0),
-                RepoError::Conflict => AppError::Conflict,
-                RepoError::Unavailable => AppError::Unavailable,
-            })?;
+        self.message_repo.create(&gm_message).await?;
 
         Ok(SendMessageResponse {
             player_message_id: *message.id(),

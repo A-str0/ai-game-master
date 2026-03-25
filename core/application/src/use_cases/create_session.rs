@@ -8,7 +8,7 @@ use domain::{
 
 use crate::{
     AppError,
-    ports::{Clock, CurrentUserError, CurrentUserPort, GameSessionRepository, IdGenerator},
+    ports::{Clock, CurrentUserPort, GameSessionRepository, IdGenerator},
     use_cases::{AppResult, UseCase},
 };
 
@@ -46,15 +46,7 @@ impl CreateSessionUseCase {
 #[async_trait::async_trait]
 impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCase {
     async fn execute(&self, _command: CreateSessionCommand) -> AppResult<CreateSessionResponse> {
-        let current_user_id =
-            self.current_user
-                .current_user_id()
-                .await
-                .map_err(|err| match err {
-                    CurrentUserError::Unauthenticated => AppError::Unauthenticated,
-                    CurrentUserError::Forbidden => AppError::Forbidden,
-                    CurrentUserError::Unavailable => AppError::Unavailable,
-                })?;
+        let current_user_id = self.current_user.current_user_id().await?;
 
         let rng_state = RngState::default();
         let seed = i64::try_from(rng_state.seed()).map_err(|_| AppError::Unavailable)?;
@@ -66,14 +58,7 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
             rng_state,
             created_ts,
         );
-        self.sessions_repo
-            .create(&session)
-            .await
-            .map_err(|err| match err {
-                crate::ports::RepoError::NotFound => AppError::Unavailable,
-                crate::ports::RepoError::Conflict => AppError::Conflict,
-                crate::ports::RepoError::Unavailable => AppError::Unavailable,
-            })?;
+        self.sessions_repo.create(&session).await?;
 
         Ok(CreateSessionResponse {
             session_id: *session.id(),

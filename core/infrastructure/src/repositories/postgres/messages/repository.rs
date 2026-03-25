@@ -1,4 +1,4 @@
-use application::ports::{MessageRepository, RepoResult};
+use application::ports::{MessageRepository, RepoError, RepoResult};
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use domain::{aggregates::Message, value_objects::GameSessionId};
 
@@ -6,7 +6,7 @@ use super::{
     models::{MessageRow, NewMessageRow},
     schema::messages::dsl,
 };
-use crate::repositories::postgres::{PgPool, PgRepoError, connection};
+use crate::repositories::postgres::{PgPool, RESOURCE_MESSAGE, connection, map_diesel_error};
 
 #[derive(Clone)]
 pub struct PgMessageRepository {
@@ -28,7 +28,7 @@ impl MessageRepository for PgMessageRepository {
         diesel::insert_into(dsl::messages)
             .values(&row)
             .execute(&mut conn)
-            .map_err(PgRepoError::from)?;
+            .map_err(|error| map_diesel_error(error, RESOURCE_MESSAGE))?;
 
         Ok(())
     }
@@ -46,9 +46,9 @@ impl MessageRepository for PgMessageRepository {
         let rows = dsl::messages
             .filter(dsl::session_id.eq(session_id.0))
             .order((dsl::ts.desc(), dsl::id.desc()))
-            .limit(i64::try_from(limit).map_err(|_| application::ports::RepoError::Unavailable)?)
+            .limit(i64::try_from(limit).map_err(|_| RepoError::Unavailable)?)
             .load::<MessageRow>(&mut conn)
-            .map_err(PgRepoError::from)?;
+            .map_err(|error| map_diesel_error(error, RESOURCE_MESSAGE))?;
 
         rows.into_iter().map(TryInto::try_into).collect()
     }

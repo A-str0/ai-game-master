@@ -7,7 +7,7 @@ use domain::{
 
 use crate::{
     AppError,
-    ports::{CurrentUserError, CurrentUserPort, GameSessionRepository, RepoError},
+    ports::{CurrentUserPort, GameSessionRepository},
     use_cases::{AppResult, UseCase},
 };
 
@@ -59,25 +59,9 @@ impl GetSessionUseCase {
 #[async_trait::async_trait]
 impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
     async fn execute(&self, command: GetSessionCommand) -> AppResult<GetSessionResponse> {
-        let current_user_id =
-            self.current_user
-                .current_user_id()
-                .await
-                .map_err(|err| match err {
-                    CurrentUserError::Unauthenticated => AppError::Unauthenticated,
-                    CurrentUserError::Forbidden => AppError::Forbidden,
-                    CurrentUserError::Unavailable => AppError::Unavailable,
-                })?;
+        let current_user_id = self.current_user.current_user_id().await?;
 
-        let session = self
-            .sessions_repo
-            .get_by_id(&command.session_id)
-            .await
-            .map_err(|err| match err {
-                RepoError::NotFound => AppError::NotFound(command.session_id.0),
-                RepoError::Conflict => AppError::Conflict,
-                RepoError::Unavailable => AppError::Unavailable,
-            })?;
+        let session = self.sessions_repo.get_by_id(&command.session_id).await?;
 
         if session.owner_id() != &current_user_id {
             return Err(AppError::Forbidden);

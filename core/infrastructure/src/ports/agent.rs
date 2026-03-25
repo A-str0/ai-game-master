@@ -1,7 +1,4 @@
-use application::{
-    AppError, AppResult,
-    ports::{AgentPort, AgentPrompt, AgentResponse},
-};
+use application::ports::{AgentError, AgentPort, AgentPrompt, AgentResponse, AgentResult};
 use autoagents::{core::agent::DirectAgentHandle, prelude::*};
 use autoagents_derive::{AgentHooks, agent};
 
@@ -34,7 +31,7 @@ impl Agent {
 
 #[async_trait::async_trait]
 impl AgentPort for Agent {
-    async fn generate(&self, prompt: AgentPrompt) -> AppResult<AgentResponse> {
+    async fn generate(&self, prompt: AgentPrompt) -> AgentResult<AgentResponse> {
         // TODO: implement error handling
 
         if let Some(value) = self
@@ -47,6 +44,6 @@ impl AgentPort for Agent {
             return Ok(AgentResponse(value));
         }
 
-        Err(AppError::Unavailable)
+        Err(AgentError::Unavailable)
     }
 }

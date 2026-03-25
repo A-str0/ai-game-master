@@ -1,4 +1,4 @@
-use crate::AppResult;
+use thiserror::Error;
 
 #[derive(Debug, Clone)]
 pub struct PromptContextObject {
@@ -17,7 +17,15 @@ pub struct AgentPrompt {
 
 pub struct AgentResponse(pub String);
 
+#[derive(Debug, Error)]
+pub enum AgentError {
+    #[error("agent backend unavailable")]
+    Unavailable,
+}
+
+pub type AgentResult<T> = Result<T, AgentError>;
+
 #[async_trait::async_trait]
 pub trait AgentPort: Send + Sync {
-    async fn generate(&self, prompt: AgentPrompt) -> AppResult<AgentResponse>;
+    async fn generate(&self, prompt: AgentPrompt) -> AgentResult<AgentResponse>;
 }

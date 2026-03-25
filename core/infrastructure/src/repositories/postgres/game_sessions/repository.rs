@@ -6,7 +6,7 @@ use super::{
     models::{GameSessionChangeset, GameSessionRow, NewGameSessionRow},
     schema::game_sessions::dsl,
 };
-use crate::repositories::postgres::{PgPool, PgRepoError, connection};
+use crate::repositories::postgres::{PgPool, RESOURCE_GAME_SESSION, connection, map_diesel_error};
 
 #[derive(Clone)]
 pub struct PgGameSessionRepository {
@@ -28,7 +28,7 @@ impl GameSessionRepository for PgGameSessionRepository {
         diesel::insert_into(dsl::game_sessions)
             .values(&row)
             .execute(&mut conn)
-            .map_err(PgRepoError::from)?;
+            .map_err(|error| map_diesel_error(error, RESOURCE_GAME_SESSION))?;
 
         Ok(())
     }
@@ -38,7 +38,7 @@ impl GameSessionRepository for PgGameSessionRepository {
         let row = dsl::game_sessions
             .find(id.0)
             .first::<GameSessionRow>(&mut conn)
-            .map_err(PgRepoError::from)?;
+            .map_err(|error| map_diesel_error(error, RESOURCE_GAME_SESSION))?;
 
         row.try_into()
     }
@@ -49,10 +49,10 @@ impl GameSessionRepository for PgGameSessionRepository {
         let updated_rows = diesel::update(dsl::game_sessions.find(session.id().0))
             .set(&changes)
             .execute(&mut conn)
-            .map_err(PgRepoError::from)?;
+            .map_err(|error| map_diesel_error(error, RESOURCE_GAME_SESSION))?;
 
         if updated_rows == 0 {
-            return Err(RepoError::NotFound);
+            return Err(RepoError::not_found(RESOURCE_GAME_SESSION));
         }
 
         Ok(())

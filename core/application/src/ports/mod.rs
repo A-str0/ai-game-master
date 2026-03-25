@@ -16,12 +16,22 @@ pub use message_repository::*;
 
 #[derive(Debug, Error)]
 pub enum RepoError {
-    #[error("entity not found")]
-    NotFound,
-    #[error("entity already exists")]
-    Conflict,
+    #[error("{resource} not found")]
+    NotFound { resource: &'static str },
+    #[error("{resource} already exists")]
+    Conflict { resource: &'static str },
     #[error("storage unavailable")]
     Unavailable,
+}
+
+impl RepoError {
+    pub const fn not_found(resource: &'static str) -> Self {
+        Self::NotFound { resource }
+    }
+
+    pub const fn conflict(resource: &'static str) -> Self {
+        Self::Conflict { resource }
+    }
 }
 
 pub type RepoResult<T> = Result<T, RepoError>;
