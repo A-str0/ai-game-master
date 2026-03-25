@@ -8,7 +8,7 @@ use domain::{
 
 use crate::{
     AppError,
-    ports::{Clock, CurrentUserPort, GameSessionRepository, IdGenerator},
+    ports::{ClockPort, CurrentUserPort, GameSessionRepository, IdGeneratorPort},
     use_cases::{AppResult, UseCase},
 };
 
@@ -23,16 +23,16 @@ pub struct CreateSessionResponse {
 pub struct CreateSessionUseCase {
     sessions_repo: Arc<dyn GameSessionRepository>,
     current_user: Arc<dyn CurrentUserPort>,
-    clock: Arc<dyn Clock>,
-    id_generator: Arc<dyn IdGenerator>,
+    clock: Arc<dyn ClockPort>,
+    id_generator: Arc<dyn IdGeneratorPort>,
 }
 
 impl CreateSessionUseCase {
     pub fn new(
         sessions_repo: Arc<dyn GameSessionRepository>,
         current_user: Arc<dyn CurrentUserPort>,
-        clock: Arc<dyn Clock>,
-        id_generator: Arc<dyn IdGenerator>,
+        clock: Arc<dyn ClockPort>,
+        id_generator: Arc<dyn IdGeneratorPort>,
     ) -> Self {
         Self {
             sessions_repo,

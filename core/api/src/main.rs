@@ -32,8 +32,8 @@ struct AppState {
     sessions_repo: Arc<dyn GameSessionRepository>,
     messages_repo: Arc<dyn MessageRepository>,
     agent: Arc<dyn AgentOrchestratorPort>,
-    clock: Arc<dyn application::ports::Clock>,
-    id_generator: Arc<dyn application::ports::IdGenerator>,
+    clock: Arc<dyn application::ports::ClockPort>,
+    id_generator: Arc<dyn application::ports::IdGeneratorPort>,
     prompt_assembly: Arc<dyn PromptAssemblyService>,
     current_user_id: UserId,
 }
@@ -56,8 +56,8 @@ async fn main() -> anyhow::Result<()> {
     let sessions_repo: Arc<dyn GameSessionRepository> = Arc::new(database.game_sessions());
     let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
     let agent: Arc<dyn AgentOrchestratorPort> = Arc::new(Agent::new().await?);
-    let clock: Arc<dyn application::ports::Clock> = Arc::new(Clock::new());
-    let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(IdGenerator);
+    let clock: Arc<dyn application::ports::ClockPort> = Arc::new(Clock::new());
+    let id_generator: Arc<dyn application::ports::IdGeneratorPort> = Arc::new(IdGenerator);
     let prompt_assembly: Arc<dyn PromptAssemblyService> =
         Arc::new(PromptAssembly::new(Arc::clone(&messages_repo)));
     let current_user_id = UserId(Uuid::new_v4());
