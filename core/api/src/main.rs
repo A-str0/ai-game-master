@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Context;
 use application::{
     AppError,
-    ports::{AgentPort, CurrentUserPort, GameSessionRepository, MessageRepository},
+    ports::{AgentOrchestratorPort, CurrentUserPort, GameSessionRepository, MessageRepository},
     services::PromptAssemblyService,
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,
@@ -31,7 +31,7 @@ use uuid::Uuid;
 struct AppState {
     sessions_repo: Arc<dyn GameSessionRepository>,
     messages_repo: Arc<dyn MessageRepository>,
-    agent: Arc<dyn AgentPort>,
+    agent: Arc<dyn AgentOrchestratorPort>,
     clock: Arc<dyn application::ports::Clock>,
     id_generator: Arc<dyn application::ports::IdGenerator>,
     prompt_assembly: Arc<dyn PromptAssemblyService>,
@@ -55,7 +55,7 @@ async fn main() -> anyhow::Result<()> {
 
     let sessions_repo: Arc<dyn GameSessionRepository> = Arc::new(database.game_sessions());
     let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
-    let agent: Arc<dyn AgentPort> = Arc::new(Agent::new().await?);
+    let agent: Arc<dyn AgentOrchestratorPort> = Arc::new(Agent::new().await?);
     let clock: Arc<dyn application::ports::Clock> = Arc::new(Clock::new());
     let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(IdGenerator);
     let prompt_assembly: Arc<dyn PromptAssemblyService> =

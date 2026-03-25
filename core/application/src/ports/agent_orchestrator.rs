@@ -7,7 +7,7 @@ pub struct PromptContextObject {
 }
 
 #[derive(Debug, Clone)]
-pub struct AgentPrompt {
+pub struct PromptInput {
     pub system_prompt: String,
     pub world_summary: String,
     pub retrieved_objects: Vec<PromptContextObject>,
@@ -15,17 +15,17 @@ pub struct AgentPrompt {
     pub instructions: String,
 }
 
-pub struct AgentResponse(pub String);
+pub struct AgentOrchestratorResponse(pub String);
 
 #[derive(Debug, Error)]
-pub enum AgentError {
+pub enum AgentOrchestratorError {
     #[error("agent backend unavailable")]
     Unavailable,
 }
 
-pub type AgentResult<T> = Result<T, AgentError>;
+pub type AgentResult<T> = Result<T, AgentOrchestratorError>;
 
 #[async_trait::async_trait]
-pub trait AgentPort: Send + Sync {
-    async fn generate(&self, prompt: AgentPrompt) -> AgentResult<AgentResponse>;
+pub trait AgentOrchestratorPort: Send + Sync {
+    async fn generate(&self, prompt: PromptInput) -> AgentResult<AgentOrchestratorResponse>;
 }

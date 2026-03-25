@@ -1,6 +1,6 @@
 use domain::aggregates::{GameSession, Message};
 
-use crate::{AppResult, ports::AgentPrompt};
+use crate::{AppResult, ports::PromptInput};
 
 #[async_trait::async_trait]
 pub trait PromptAssemblyService: Send + Sync {
@@ -8,5 +8,5 @@ pub trait PromptAssemblyService: Send + Sync {
         &self,
         session: &GameSession,
         player_message: &Message,
-    ) -> AppResult<AgentPrompt>;
+    ) -> AppResult<PromptInput>;
 }

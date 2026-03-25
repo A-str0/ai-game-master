@@ -1,4 +1,4 @@
-mod agent;
+mod agent_orchestrator;
 mod clock;
 mod current_user;
 mod game_session_repository;
@@ -7,7 +7,7 @@ mod message_repository;
 
 use thiserror::Error;
 
-pub use agent::*;
+pub use agent_orchestrator::*;
 pub use clock::*;
 pub use current_user::*;
 pub use game_session_repository::*;

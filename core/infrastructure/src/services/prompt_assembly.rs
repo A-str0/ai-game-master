@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use application::{
     AppResult,
-    ports::{AgentPrompt, MessageRepository},
+    ports::{MessageRepository, PromptInput},
     services::PromptAssemblyService,
 };
 use domain::aggregates::{GameSession, Message};
@@ -32,8 +32,8 @@ impl PromptAssemblyService for PromptAssembly {
         &self,
         session: &GameSession,
         player_message: &Message,
-    ) -> AppResult<AgentPrompt> {
-        Ok(AgentPrompt {
+    ) -> AppResult<PromptInput> {
+        Ok(PromptInput {
             system_prompt: String::from(SYSTEM_PROMPT),
             world_summary: String::from("TODO"), // TODO
             retrieved_objects: Vec::new(),       // TODO

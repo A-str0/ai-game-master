@@ -40,8 +40,8 @@ impl From<ports::RepoError> for AppError {
     }
 }
 
-impl From<ports::AgentError> for AppError {
-    fn from(_: ports::AgentError) -> Self {
+impl From<ports::AgentOrchestratorError> for AppError {
+    fn from(_: ports::AgentOrchestratorError) -> Self {
         Self::Unavailable
     }
 }
