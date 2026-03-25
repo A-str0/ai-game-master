@@ -4,15 +4,8 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     DomainError, DomainResult, Identifiable,
-    value_objects::{ContextObjectId, ContextObjectType, Provenance},
+    value_objects::{AttributeValue, ContextObjectId, ContextObjectType, Provenance},
 };
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum AttributeValue {
-    Text(String),
-    Number(f64),
-    Bool(bool),
-}
 
 /// Aggregate Root
 #[derive(Debug, Clone)]
@@ -161,6 +154,18 @@ impl ContextObject {
 
     pub fn importance_score(&self) -> f32 {
         self.importance_score
+    }
+
+    pub fn provenance(&self) -> &Provenance {
+        &self.provenance
+    }
+
+    pub fn created_ts(&self) -> DateTime<Utc> {
+        self.created_ts
+    }
+
+    pub fn updated_ts(&self) -> Option<DateTime<Utc>> {
+        self.updated_ts
     }
 }
 
