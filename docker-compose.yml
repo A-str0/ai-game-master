@@ -4,11 +4,11 @@ services:
     container_name: ai-game-master-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ai_game_master
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -28,10 +28,12 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      API_ADDR: 0.0.0.0:3000
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/ai_game_master
+      API_ADDR: ${API_ADDR}
+      DATABASE_URL: ${DATABASE_URL}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_MODEL: ${LLM_MODEL}
     ports:
-      - "3000:3000"
+      - "${API_PORT}:3000"
 
 volumes:
   postgres_data:

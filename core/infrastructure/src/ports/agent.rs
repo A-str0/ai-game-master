@@ -15,10 +15,11 @@ pub struct Agent {
 
 impl Agent {
     pub async fn new() -> Result<Self, Error> {
-        let llm = LLMBuilder::new()
-            .api_key("API_KEY") // TODO: change to config
-            .model("MODEL") // TODO: change to config
-            .build()?;
+        let api_key = std::env::var("LLM_API_KEY").unwrap_or_else(|_| String::from("API_KEY"));
+        let model = std::env::var("LLM_MODEL")
+            .unwrap_or_else(|_| String::from("nvidia/nemotron-3-super-120b-a12b:free"));
+
+        let llm = LLMBuilder::new().api_key(api_key).model(model).build()?;
 
         let agent = ReActAgent::new(Narrator);
         let handle = AgentBuilder::<_, DirectAgent>::new(agent)
