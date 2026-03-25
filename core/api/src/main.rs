@@ -60,8 +60,7 @@ async fn main() -> anyhow::Result<()> {
     let agent: Arc<dyn AgentOrchestrator> = Arc::new(DefaultAgentOrchestrator::new().await?);
     let clock: Arc<dyn application::ports::Clock> = Arc::new(UtcClock::new());
     let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(UuidGenerator);
-    let prompt_assembly: Arc<dyn PromptAssembler> =
-        Arc::new(PromptAssembly::new(Arc::clone(&messages_repo)));
+    let prompt_assembly: Arc<dyn PromptAssembler> = Arc::new(PromptAssembly::new());
     let current_user_id = UserId(Uuid::new_v4());
 
     let state = AppState {

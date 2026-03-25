@@ -11,17 +11,11 @@ use domain::aggregates::{GameSession, Message};
 const SYSTEM_PROMPT: &str = "You are the Game Master for a tabletop fantasy role-playing game. Be vivid, coherent and consistent with earlier world details. Use retrieved context objects below when relevant.";
 const INSTRUCTIONS: &str = "Use the retrieved objects to answer.";
 
-pub struct PromptAssembly {
-    message_repo: Arc<dyn MessageRepository>,
-    recent_limit: usize,
-}
+pub struct PromptAssembly {}
 
 impl PromptAssembly {
-    pub fn new(message_repo: Arc<dyn MessageRepository>) -> Self {
-        Self {
-            message_repo,
-            recent_limit: 10,
-        }
+    pub fn new() -> Self {
+        Self {}
     }
 }
 
