@@ -21,7 +21,7 @@ use axum::{
 use domain::value_objects::{GameSessionId, UserId};
 use infrastructure::{
     ports::{Agent, Clock, CurrentUserContext, IdGenerator, RequestCurrentUserPort},
-    repositories::{game_sessions::PgGameSessionRepository, messages::PgMessageRepository},
+    repositories::PgDatabase,
     services::PromptAssembly,
 };
 use serde::{Deserialize, Serialize};
@@ -46,14 +46,20 @@ fn current_user_port(user_id: UserId) -> Arc<dyn CurrentUserPort> {
 // TODO: fix DI
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let sessions_repo: Arc<dyn GameSessionRepository> =
-        Arc::new(PgGameSessionRepository::new(todo!()));
-    let messages_repo: Arc<dyn MessageRepository> = Arc::new(PgMessageRepository::new(todo!()));
+    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+        String::from("postgres://postgres:postgres@127.0.0.1:5432/ai_game_master")
+    });
+    let database = PgDatabase::new(&database_url).with_context(|| {
+        format!("failed to initialize postgres database from DATABASE_URL: {database_url}")
+    })?;
+
+    let sessions_repo: Arc<dyn GameSessionRepository> = Arc::new(database.game_sessions());
+    let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
     let agent: Arc<dyn AgentPort> = Arc::new(Agent::new().await?);
     let clock: Arc<dyn application::ports::Clock> = Arc::new(Clock::new());
     let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(IdGenerator);
     let prompt_assembly: Arc<dyn PromptAssemblyService> =
-        Arc::new(PromptAssembly::new(messages_repo));
+        Arc::new(PromptAssembly::new(Arc::clone(&messages_repo)));
     let current_user_id = UserId(Uuid::new_v4());
 
     let state = AppState {
