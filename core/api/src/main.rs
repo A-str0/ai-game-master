@@ -20,7 +20,9 @@ use axum::{
 };
 use domain::value_objects::{GameSessionId, UserId};
 use infrastructure::{
-    ports::{Agent, Clock, CurrentUserContext, IdGenerator, RequestCurrentUser},
+    ports::{
+        CurrentUserContext, DefaultAgentOrchestrator, RequestCurrentUser, UtcClock, UuidGenerator,
+    },
     repositories::PgDatabase,
     services::PromptAssembly,
 };
@@ -55,9 +57,9 @@ async fn main() -> anyhow::Result<()> {
 
     let sessions_repo: Arc<dyn GameSessionRepository> = Arc::new(database.game_sessions());
     let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
-    let agent: Arc<dyn AgentOrchestrator> = Arc::new(Agent::new().await?);
-    let clock: Arc<dyn application::ports::Clock> = Arc::new(Clock::new());
-    let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(IdGenerator);
+    let agent: Arc<dyn AgentOrchestrator> = Arc::new(DefaultAgentOrchestrator::new().await?);
+    let clock: Arc<dyn application::ports::Clock> = Arc::new(UtcClock::new());
+    let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(UuidGenerator);
     let prompt_assembly: Arc<dyn PromptAssembler> =
         Arc::new(PromptAssembly::new(Arc::clone(&messages_repo)));
     let current_user_id = UserId(Uuid::new_v4());

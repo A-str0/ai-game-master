@@ -1,15 +1,16 @@
+use application::ports::Clock;
 use chrono::{DateTime, Utc};
 
-pub struct Clock;
+pub struct UtcClock;
 
 #[async_trait::async_trait]
-impl application::ports::Clock for Clock {
+impl Clock for UtcClock {
     async fn now(&self) -> DateTime<Utc> {
         Utc::now()
     }
 }
 
-impl Clock {
+impl UtcClock {
     pub fn new() -> Self {
         Self
     }

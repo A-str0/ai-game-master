@@ -8,11 +8,12 @@ use autoagents_derive::{AgentHooks, agent};
 #[agent(name = "TEST", description = "TEST")]
 pub struct Narrator;
 
-pub struct Agent {
+// TODO: cool name
+pub struct DefaultAgentOrchestrator {
     handle: DirectAgentHandle<ReActAgent<Narrator>>, // TODO: change to switchable backend
 }
 
-impl Agent {
+impl DefaultAgentOrchestrator {
     pub async fn new() -> Result<Self, Error> {
         let api_key = std::env::var("LLM_API_KEY").unwrap_or_else(|_| String::from("API_KEY"));
         let model = std::env::var("LLM_MODEL")
@@ -32,7 +33,7 @@ impl Agent {
 }
 
 #[async_trait::async_trait]
-impl AgentOrchestrator for Agent {
+impl AgentOrchestrator for DefaultAgentOrchestrator {
     async fn generate(&self, prompt: PromptInput) -> AgentResult<AgentOrchestratorResponse> {
         // TODO: implement error handling
 
