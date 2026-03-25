@@ -5,7 +5,7 @@ use crate::{
     value_objects::{GameSessionId, MessageId, MessageRole},
 };
 
-/// Aggregate
+/// Aggregate Root
 #[derive(Debug)]
 pub struct Message {
     id: MessageId,
