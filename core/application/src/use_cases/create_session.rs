@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use domain::{
     Identifiable,
-    aggregates::GameSession,
-    value_objects::{GameSessionConfig, GameSessionId, RngState},
+    aggregates::{GameSession, GameSessionConfig},
+    value_objects::{GameSessionId, RngState},
 };
 
 use crate::{

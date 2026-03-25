@@ -3,12 +3,11 @@ use chrono::{DateTime, Utc};
 use diesel::sql_types::SqlType;
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable};
 use diesel_derive_enum::DbEnum;
+use domain::aggregates::GameSessionConfig;
 use domain::{
     Identifiable as DomainIdentifiable,
     aggregates::GameSession,
-    value_objects::{
-        GameSessionConfig, GameSessionId, GameSessionMode, RngState, ScoringWeights, UserId,
-    },
+    value_objects::{GameSessionId, GameSessionMode, RngState, ScoringWeights, UserId},
 };
 use uuid::Uuid;
 

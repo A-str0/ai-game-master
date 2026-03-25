@@ -2,7 +2,8 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     Identifiable,
-    value_objects::{GameSessionConfig, GameSessionId, RngState, UserId},
+    aggregates::GameSessionConfig,
+    value_objects::{GameSessionId, RngState, UserId},
 };
 
 /// Aggregate Root
