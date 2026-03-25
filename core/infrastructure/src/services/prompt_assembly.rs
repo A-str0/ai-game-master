@@ -1,10 +1,4 @@
-use std::sync::Arc;
-
-use application::{
-    AppResult,
-    ports::{MessageRepository, PromptInput},
-    services::PromptAssembler,
-};
+use application::{AppResult, ports::PromptInput, services::PromptAssembler};
 use domain::aggregates::{GameSession, Message};
 
 // TODO: move to config
