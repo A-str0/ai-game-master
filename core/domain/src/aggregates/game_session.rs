@@ -5,7 +5,7 @@ use crate::{
     value_objects::{GameSessionConfig, GameSessionId, RngState, UserId},
 };
 
-/// Aggregate root
+/// Aggregate Root
 #[derive(Debug)]
 pub struct GameSession {
     id: GameSessionId,
@@ -14,14 +14,6 @@ pub struct GameSession {
     rng_state: RngState,
     created_ts: DateTime<Utc>,
     last_activity_ts: Option<DateTime<Utc>>,
-}
-
-impl Identifiable for GameSession {
-    type Id = GameSessionId;
-
-    fn id(&self) -> &Self::Id {
-        &self.id
-    }
 }
 
 impl GameSession {
@@ -78,5 +70,13 @@ impl GameSession {
 
     pub fn rng_state(&self) -> RngState {
         self.rng_state
+    }
+}
+
+impl Identifiable for GameSession {
+    type Id = GameSessionId;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
     }
 }
