@@ -8,3 +8,9 @@ impl application::ports::Clock for Clock {
         Utc::now()
     }
 }
+
+impl Clock {
+    pub fn new() -> Self {
+        Self
+    }
+}

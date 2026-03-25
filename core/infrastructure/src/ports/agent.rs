@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use application::{
     AppError, AppResult,
     ports::{AgentPort, AgentPrompt, AgentResponse},
@@ -16,7 +14,7 @@ pub struct Agent {
 }
 
 impl Agent {
-    async fn new() -> Result<Self, Error> {
+    pub async fn new() -> Result<Self, Error> {
         let llm = LLMBuilder::new()
             .api_key("API_KEY") // TODO: change to config
             .model("MODEL") // TODO: change to config
