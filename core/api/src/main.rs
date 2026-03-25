@@ -3,7 +3,9 @@ use std::sync::Arc;
 use anyhow::Context;
 use application::{
     AppError,
-    ports::{AgentOrchestratorPort, CurrentUserPort, GameSessionRepository, MessageRepository},
+    ports::{
+        AgentOrchestratorPort, CurrentUserPort, GameSessionRepositoryPort, MessageRepositoryPort,
+    },
     services::PromptAssemblyService,
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,
@@ -29,8 +31,8 @@ use uuid::Uuid;
 
 #[derive(Clone)]
 struct AppState {
-    sessions_repo: Arc<dyn GameSessionRepository>,
-    messages_repo: Arc<dyn MessageRepository>,
+    sessions_repo: Arc<dyn GameSessionRepositoryPort>,
+    messages_repo: Arc<dyn MessageRepositoryPort>,
     agent: Arc<dyn AgentOrchestratorPort>,
     clock: Arc<dyn application::ports::ClockPort>,
     id_generator: Arc<dyn application::ports::IdGeneratorPort>,
@@ -53,8 +55,8 @@ async fn main() -> anyhow::Result<()> {
         format!("failed to initialize postgres database from DATABASE_URL: {database_url}")
     })?;
 
-    let sessions_repo: Arc<dyn GameSessionRepository> = Arc::new(database.game_sessions());
-    let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
+    let sessions_repo: Arc<dyn GameSessionRepositoryPort> = Arc::new(database.game_sessions());
+    let messages_repo: Arc<dyn MessageRepositoryPort> = Arc::new(database.messages());
     let agent: Arc<dyn AgentOrchestratorPort> = Arc::new(Agent::new().await?);
     let clock: Arc<dyn application::ports::ClockPort> = Arc::new(Clock::new());
     let id_generator: Arc<dyn application::ports::IdGeneratorPort> = Arc::new(IdGenerator);

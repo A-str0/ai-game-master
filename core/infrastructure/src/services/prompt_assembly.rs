@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use application::{
     AppResult,
-    ports::{MessageRepository, PromptInput},
+    ports::{MessageRepositoryPort, PromptInput},
     services::PromptAssemblyService,
 };
 use domain::aggregates::{GameSession, Message};
@@ -12,12 +12,12 @@ const SYSTEM_PROMPT: &str = "You are the Game Master for a tabletop fantasy role
 const INSTRUCTIONS: &str = "Use the retrieved objects to answer.";
 
 pub struct PromptAssembly {
-    message_repo: Arc<dyn MessageRepository>,
+    message_repo: Arc<dyn MessageRepositoryPort>,
     recent_limit: usize,
 }
 
 impl PromptAssembly {
-    pub fn new(message_repo: Arc<dyn MessageRepository>) -> Self {
+    pub fn new(message_repo: Arc<dyn MessageRepositoryPort>) -> Self {
         Self {
             message_repo,
             recent_limit: 10,

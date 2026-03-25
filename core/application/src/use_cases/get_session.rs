@@ -7,7 +7,7 @@ use domain::{
 
 use crate::{
     AppError,
-    ports::{CurrentUserPort, GameSessionRepository},
+    ports::{CurrentUserPort, GameSessionRepositoryPort},
     use_cases::{AppResult, UseCase},
 };
 
@@ -40,13 +40,13 @@ pub struct GetSessionResponse {
 }
 
 pub struct GetSessionUseCase {
-    sessions_repo: Arc<dyn GameSessionRepository>,
+    sessions_repo: Arc<dyn GameSessionRepositoryPort>,
     current_user: Arc<dyn CurrentUserPort>,
 }
 
 impl GetSessionUseCase {
     pub fn new(
-        sessions_repo: Arc<dyn GameSessionRepository>,
+        sessions_repo: Arc<dyn GameSessionRepositoryPort>,
         current_user: Arc<dyn CurrentUserPort>,
     ) -> Self {
         Self {
