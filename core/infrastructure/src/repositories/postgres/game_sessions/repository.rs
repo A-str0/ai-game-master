@@ -1,4 +1,4 @@
-use application::ports::{GameSessionRepositoryPort, RepoError, RepoResult};
+use application::ports::{GameSessionRepository, RepoError, RepoResult};
 use diesel::{QueryDsl, RunQueryDsl};
 use domain::{Identifiable, aggregates::GameSession, value_objects::GameSessionId};
 
@@ -20,7 +20,7 @@ impl PgGameSessionRepository {
 }
 
 #[async_trait::async_trait]
-impl GameSessionRepositoryPort for PgGameSessionRepository {
+impl GameSessionRepository for PgGameSessionRepository {
     async fn create(&self, session: &GameSession) -> RepoResult<()> {
         let mut conn = connection(&self.pool)?;
         let row = NewGameSessionRow::try_from(session)?;

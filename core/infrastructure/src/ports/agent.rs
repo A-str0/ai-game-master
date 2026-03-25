@@ -1,6 +1,5 @@
 use application::ports::{
-    AgentOrchestratorError, AgentOrchestratorPort, AgentOrchestratorResponse, AgentResult,
-    PromptInput,
+    AgentOrchestrator, AgentOrchestratorError, AgentOrchestratorResponse, AgentResult, PromptInput,
 };
 use autoagents::{core::agent::DirectAgentHandle, prelude::*};
 use autoagents_derive::{AgentHooks, agent};
@@ -33,7 +32,7 @@ impl Agent {
 }
 
 #[async_trait::async_trait]
-impl AgentOrchestratorPort for Agent {
+impl AgentOrchestrator for Agent {
     async fn generate(&self, prompt: PromptInput) -> AgentResult<AgentOrchestratorResponse> {
         // TODO: implement error handling
 

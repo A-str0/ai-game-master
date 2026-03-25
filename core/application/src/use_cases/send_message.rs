@@ -9,10 +9,10 @@ use domain::{
 use crate::{
     AppError, AppResult,
     ports::{
-        AgentOrchestratorPort, ClockPort, CurrentUserPort, GameSessionRepositoryPort, IdGeneratorPort,
-        MessageRepositoryPort,
+        AgentOrchestrator, Clock, CurrentUser, GameSessionRepository, IdGenerator,
+        MessageRepository,
     },
-    services::PromptAssemblyService,
+    services::PromptAssembler,
     use_cases::UseCase,
 };
 
@@ -26,24 +26,24 @@ pub struct SendMessageResponse {
 }
 
 pub struct SendMessageUseCase {
-    session_repo: Arc<dyn GameSessionRepositoryPort>,
-    message_repo: Arc<dyn MessageRepositoryPort>,
-    current_user: Arc<dyn CurrentUserPort>,
-    prompt_assembly: Arc<dyn PromptAssemblyService>,
-    agent: Arc<dyn AgentOrchestratorPort>,
-    clock: Arc<dyn ClockPort>,
-    id_generator: Arc<dyn IdGeneratorPort>,
+    session_repo: Arc<dyn GameSessionRepository>,
+    message_repo: Arc<dyn MessageRepository>,
+    current_user: Arc<dyn CurrentUser>,
+    prompt_assembly: Arc<dyn PromptAssembler>,
+    agent: Arc<dyn AgentOrchestrator>,
+    clock: Arc<dyn Clock>,
+    id_generator: Arc<dyn IdGenerator>,
 }
 
 impl SendMessageUseCase {
     pub fn new(
-        session_repo: Arc<dyn GameSessionRepositoryPort>,
-        message_repo: Arc<dyn MessageRepositoryPort>,
-        current_user: Arc<dyn CurrentUserPort>,
-        prompt_assembly: Arc<dyn PromptAssemblyService>,
-        agent: Arc<dyn AgentOrchestratorPort>,
-        clock: Arc<dyn ClockPort>,
-        id_generator: Arc<dyn IdGeneratorPort>,
+        session_repo: Arc<dyn GameSessionRepository>,
+        message_repo: Arc<dyn MessageRepository>,
+        current_user: Arc<dyn CurrentUser>,
+        prompt_assembly: Arc<dyn PromptAssembler>,
+        agent: Arc<dyn AgentOrchestrator>,
+        clock: Arc<dyn Clock>,
+        id_generator: Arc<dyn IdGenerator>,
     ) -> Self {
         Self {
             session_repo,

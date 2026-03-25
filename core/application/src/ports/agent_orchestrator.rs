@@ -26,6 +26,6 @@ pub enum AgentOrchestratorError {
 pub type AgentResult<T> = Result<T, AgentOrchestratorError>;
 
 #[async_trait::async_trait]
-pub trait AgentOrchestratorPort: Send + Sync {
+pub trait AgentOrchestrator: Send + Sync {
     async fn generate(&self, prompt: PromptInput) -> AgentResult<AgentOrchestratorResponse>;
 }

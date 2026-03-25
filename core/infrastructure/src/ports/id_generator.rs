@@ -4,7 +4,7 @@ use uuid::Uuid;
 pub struct IdGenerator;
 
 #[async_trait::async_trait]
-impl application::ports::IdGeneratorPort for IdGenerator {
+impl application::ports::IdGenerator for IdGenerator {
     async fn next_game_session_id(&self) -> GameSessionId {
         GameSessionId(Uuid::new_v4())
     }

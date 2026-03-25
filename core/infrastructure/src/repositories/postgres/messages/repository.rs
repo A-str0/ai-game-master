@@ -1,4 +1,4 @@
-use application::ports::{MessageRepositoryPort, RepoError, RepoResult};
+use application::ports::{MessageRepository, RepoError, RepoResult};
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use domain::{aggregates::Message, value_objects::GameSessionId};
 
@@ -20,7 +20,7 @@ impl PgMessageRepository {
 }
 
 #[async_trait::async_trait]
-impl MessageRepositoryPort for PgMessageRepository {
+impl MessageRepository for PgMessageRepository {
     async fn create(&self, message: &Message) -> RepoResult<()> {
         let mut conn = connection(&self.pool)?;
         let row = NewMessageRow::from(message);

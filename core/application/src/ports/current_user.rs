@@ -14,6 +14,6 @@ pub enum CurrentUserError {
 pub type CurrentUserResult<T> = Result<T, CurrentUserError>;
 
 #[async_trait::async_trait]
-pub trait CurrentUserPort: Send + Sync {
+pub trait CurrentUser: Send + Sync {
     async fn current_user_id(&self) -> CurrentUserResult<UserId>;
 }

@@ -1,4 +1,4 @@
-use application::ports::{CurrentUserError, CurrentUserPort, CurrentUserResult};
+use application::ports::{CurrentUser, CurrentUserError, CurrentUserResult};
 use domain::value_objects::UserId;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -25,18 +25,18 @@ impl From<UserId> for CurrentUserContext {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct RequestCurrentUserPort {
+pub struct RequestCurrentUser {
     context: CurrentUserContext,
 }
 
-impl RequestCurrentUserPort {
+impl RequestCurrentUser {
     pub fn new(context: CurrentUserContext) -> Self {
         Self { context }
     }
 }
 
 #[async_trait::async_trait]
-impl CurrentUserPort for RequestCurrentUserPort {
+impl CurrentUser for RequestCurrentUser {
     async fn current_user_id(&self) -> CurrentUserResult<UserId> {
         self.context
             .user_id

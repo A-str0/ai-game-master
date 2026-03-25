@@ -1,3 +1,3 @@
-mod prompt_assembly_service;
+mod prompt_assembler;
 
-pub use prompt_assembly_service::*;
+pub use prompt_assembler::*;
