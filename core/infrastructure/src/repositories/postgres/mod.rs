@@ -4,6 +4,7 @@ use diesel::{
     r2d2::{self, ConnectionManager},
     result::{DatabaseErrorKind, Error as DieselError},
 };
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use thiserror::Error;
 
 pub mod game_sessions;
@@ -14,11 +15,16 @@ type PgPooledConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>
 
 pub const RESOURCE_GAME_SESSION: &str = "game_session";
 pub const RESOURCE_MESSAGE: &str = "message";
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 #[derive(Debug, Error)]
 pub enum PgDatabaseError {
     #[error("failed to build postgres connection pool: {0}")]
     Pool(String),
+    #[error("failed to get postgres connection for migrations: {0}")]
+    Connection(String),
+    #[error("failed to run postgres migrations: {0}")]
+    Migration(String),
 }
 
 type PgDatabaseResult<T> = Result<T, PgDatabaseError>;
@@ -47,6 +53,12 @@ impl PgDatabase {
         let pool = PgPool::builder()
             .build(manager)
             .map_err(|error| PgDatabaseError::Pool(error.to_string()))?;
+        let mut connection = pool
+            .get()
+            .map_err(|error| PgDatabaseError::Connection(error.to_string()))?;
+        connection
+            .run_pending_migrations(MIGRATIONS)
+            .map_err(|error| PgDatabaseError::Migration(error.to_string()))?;
 
         Ok(Self { pool })
     }
