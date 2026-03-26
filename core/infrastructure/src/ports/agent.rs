@@ -1,7 +1,9 @@
 use application::ports::{
     AgentOrchestrator, AgentOrchestratorError, AgentOrchestratorResponse, AgentResult, PromptInput,
 };
-use autoagents::{core::agent::DirectAgentHandle, prelude::*};
+use autoagents::{
+    core::agent::DirectAgentHandle, llm::backends::openrouter::OpenRouter, prelude::*,
+};
 use autoagents_derive::{AgentHooks, agent};
 
 #[derive(Clone, Copy, AgentHooks, Default)]
@@ -19,7 +21,10 @@ impl DefaultAgentOrchestrator {
         let model = std::env::var("LLM_MODEL")
             .unwrap_or_else(|_| String::from("nvidia/nemotron-3-super-120b-a12b:free"));
 
-        let llm = LLMBuilder::new().api_key(api_key).model(model).build()?;
+        let llm = LLMBuilder::<OpenRouter>::new()
+            .api_key(api_key)
+            .model(model)
+            .build()?;
 
         let agent = ReActAgent::new(Narrator);
         let handle = AgentBuilder::<_, DirectAgent>::new(agent)

@@ -15,5 +15,5 @@ serde_json = "1.0.145"
 uuid = { version = "1.21.0", features = ["serde", "v4"] }
 thiserror = "2.0.18"
 diesel-derive-enum = {version = "2.1.0", features = ["postgres"]}
-autoagents = {version = "0.3.6", features = ["openrouter"]}
+autoagents = {version = "0.3.6", features = ["openrouter", "openai"]}
 autoagents-derive = "0.3.6"
