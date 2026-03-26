@@ -23,7 +23,7 @@ use infrastructure::{
     ports::{
         CurrentUserContext, DefaultAgentOrchestrator, RequestCurrentUser, UtcClock, UuidGenerator,
     },
-    repositories::{connecion::PgDatabase, context_objects::QdContextObjectRepository},
+    repositories::connecion::PgDatabase,
     services::{OpenRouterEmbeddingService, PromptAssembly, QdRetrivialService, QdSearchService},
 };
 use serde::{Deserialize, Serialize};
@@ -59,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
     let clock: Arc<dyn application::ports::Clock> = Arc::new(UtcClock::new());
     let sessions_repo: Arc<dyn GameSessionRepository> = Arc::new(database.game_sessions());
     let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
-    let context_object_repo = Arc::new(QdContextObjectRepository {});
+    let context_object_repo = Arc::new(database.context_objects());
     let embedder = Arc::new(OpenRouterEmbeddingService::new().await?);
     let vector_searcher = Arc::new(QdSearchService);
     let retrivial: Arc<dyn RetrivialService> = Arc::new(QdRetrivialService::new(
