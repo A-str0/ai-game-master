@@ -15,7 +15,11 @@ pub struct PromptInput {
     pub instructions: String,
 }
 
-pub struct AgentOrchestratorResponse(pub String);
+#[derive(Debug, Clone)]
+pub enum AgentOrchestratorResponse {
+    Text(String),
+    CreateContextObject,
+}
 
 #[derive(Debug, Error)]
 pub enum AgentOrchestratorError {
@@ -27,5 +31,5 @@ pub type AgentResult<T> = Result<T, AgentOrchestratorError>;
 
 #[async_trait::async_trait]
 pub trait AgentOrchestrator: Send + Sync {
-    async fn generate(&self, prompt: PromptInput) -> AgentResult<AgentOrchestratorResponse>;
+    async fn generate(&self, prompt: &PromptInput) -> AgentResult<AgentOrchestratorResponse>;
 }

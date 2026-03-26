@@ -9,10 +9,10 @@ use domain::{
 use crate::{
     AppError, AppResult,
     ports::{
-        AgentOrchestrator, Clock, CurrentUser, GameSessionRepository, IdGenerator,
-        MessageRepository,
+        AgentOrchestrator, AgentOrchestratorResponse, Clock, CurrentUser, GameSessionRepository,
+        IdGenerator, MessageRepository, PromptContextObject,
     },
-    services::PromptAssembler,
+    services::{PromptAssembler, RetrivialService},
     use_cases::UseCase,
 };
 
@@ -30,6 +30,7 @@ pub struct SendMessageUseCase {
     message_repo: Arc<dyn MessageRepository>,
     current_user: Arc<dyn CurrentUser>,
     prompt_assembly: Arc<dyn PromptAssembler>,
+    retrivial: Arc<dyn RetrivialService>,
     agent: Arc<dyn AgentOrchestrator>,
     clock: Arc<dyn Clock>,
     id_generator: Arc<dyn IdGenerator>,
@@ -41,6 +42,7 @@ impl SendMessageUseCase {
         message_repo: Arc<dyn MessageRepository>,
         current_user: Arc<dyn CurrentUser>,
         prompt_assembly: Arc<dyn PromptAssembler>,
+        retrivial: Arc<dyn RetrivialService>,
         agent: Arc<dyn AgentOrchestrator>,
         clock: Arc<dyn Clock>,
         id_generator: Arc<dyn IdGenerator>,
@@ -50,6 +52,7 @@ impl SendMessageUseCase {
             message_repo,
             current_user,
             prompt_assembly,
+            retrivial,
             agent,
             clock,
             id_generator,
@@ -79,20 +82,36 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
 
         self.message_repo.create(&message).await?;
 
-        let prompt = self.prompt_assembly.assemble(&session, &message).await?;
+        let retrival_objects = self.retrivial.find_for_message(&session, &message).await?;
+        let prompt_objects = retrival_objects
+            .into_iter()
+            .map(|obj| PromptContextObject {
+                title: String::from(obj.context_object.title()),
+                summary: String::from(obj.context_object.short_desc()),
+            })
+            .collect::<Vec<_>>();
 
-        let agent_response = self.agent.generate(prompt).await?;
+        let prompt = self
+            .prompt_assembly
+            .assemble(&session, &message, &prompt_objects)
+            .await?;
+        let agent_response = self.agent.generate(&prompt).await?;
 
-        let gm_message = Message::new(
-            self.id_generator.next_message_id().await,
-            command.session_id,
-            MessageRole::Gm,
-            &agent_response.0,
-            self.clock.now().await,
-        )
-        .map_err(AppError::from)?;
+        match agent_response {
+            AgentOrchestratorResponse::Text(msg) => {
+                let gm_message = Message::new(
+                    self.id_generator.next_message_id().await,
+                    command.session_id,
+                    MessageRole::Gm,
+                    &msg,
+                    self.clock.now().await,
+                )
+                .map_err(AppError::from)?;
 
-        self.message_repo.create(&gm_message).await?;
+                self.message_repo.create(&gm_message).await?;
+            }
+            AgentOrchestratorResponse::CreateContextObject => {}
+        }
 
         Ok(SendMessageResponse {
             player_message_id: *message.id(),

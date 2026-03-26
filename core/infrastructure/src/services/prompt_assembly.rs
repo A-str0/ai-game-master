@@ -1,4 +1,8 @@
-use application::{AppResult, ports::PromptInput, services::PromptAssembler};
+use application::{
+    AppResult,
+    ports::{PromptContextObject, PromptInput},
+    services::PromptAssembler,
+};
 use domain::aggregates::{GameSession, Message};
 
 // TODO: move to config
@@ -20,11 +24,12 @@ impl PromptAssembler for PromptAssembly {
         &self,
         session: &GameSession,
         player_message: &Message,
+        retrieved_objects: &[PromptContextObject],
     ) -> AppResult<PromptInput> {
         Ok(PromptInput {
             system_prompt: String::from(SYSTEM_PROMPT),
             world_summary: String::from("TODO"), // TODO
-            retrieved_objects: Vec::new(),       // TODO
+            retrieved_objects: retrieved_objects.to_vec(),
             player_action: String::from(player_message.text()), // TODO
             instructions: String::from(INSTRUCTIONS),
         })

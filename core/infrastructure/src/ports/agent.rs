@@ -39,7 +39,7 @@ impl DefaultAgentOrchestrator {
 
 #[async_trait::async_trait]
 impl AgentOrchestrator for DefaultAgentOrchestrator {
-    async fn generate(&self, prompt: PromptInput) -> AgentResult<AgentOrchestratorResponse> {
+    async fn generate(&self, prompt: &PromptInput) -> AgentResult<AgentOrchestratorResponse> {
         // TODO: implement error handling
 
         if let Some(value) = self
@@ -49,7 +49,7 @@ impl AgentOrchestrator for DefaultAgentOrchestrator {
             .await
             .ok()
         {
-            return Ok(AgentOrchestratorResponse(value));
+            return Ok(AgentOrchestratorResponse::Text(value));
         }
 
         Err(AgentOrchestratorError::Unavailable)

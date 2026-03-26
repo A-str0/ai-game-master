@@ -4,7 +4,7 @@ use anyhow::Context;
 use application::{
     AppError,
     ports::{AgentOrchestrator, CurrentUser, GameSessionRepository, MessageRepository},
-    services::PromptAssembler,
+    services::{PromptAssembler, RetrivialService},
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,
         GetSessionCommand, GetSessionResponse, GetSessionUseCase, SendMessageCommand,
@@ -23,8 +23,8 @@ use infrastructure::{
     ports::{
         CurrentUserContext, DefaultAgentOrchestrator, RequestCurrentUser, UtcClock, UuidGenerator,
     },
-    repositories::connecion::PgDatabase,
-    services::PromptAssembly,
+    repositories::{connecion::PgDatabase, context_objects::QdContextObjectRepository},
+    services::{OpenRouterEmbeddingService, PromptAssembly, QdRetrivialService, QdSearchService},
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -33,6 +33,7 @@ use uuid::Uuid;
 struct AppState {
     sessions_repo: Arc<dyn GameSessionRepository>,
     messages_repo: Arc<dyn MessageRepository>,
+    retrivial: Arc<dyn RetrivialService>,
     agent: Arc<dyn AgentOrchestrator>,
     clock: Arc<dyn application::ports::Clock>,
     id_generator: Arc<dyn application::ports::IdGenerator>,
@@ -55,10 +56,19 @@ async fn main() -> anyhow::Result<()> {
         format!("failed to initialize postgres database from DATABASE_URL: {database_url}")
     })?;
 
+    let clock: Arc<dyn application::ports::Clock> = Arc::new(UtcClock::new());
     let sessions_repo: Arc<dyn GameSessionRepository> = Arc::new(database.game_sessions());
     let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
+    let context_object_repo = Arc::new(QdContextObjectRepository {});
+    let embedder = Arc::new(OpenRouterEmbeddingService::new().await?);
+    let vector_searcher = Arc::new(QdSearchService);
+    let retrivial: Arc<dyn RetrivialService> = Arc::new(QdRetrivialService::new(
+        embedder,
+        vector_searcher,
+        context_object_repo,
+        Arc::clone(&clock),
+    ));
     let agent: Arc<dyn AgentOrchestrator> = Arc::new(DefaultAgentOrchestrator::new().await?);
-    let clock: Arc<dyn application::ports::Clock> = Arc::new(UtcClock::new());
     let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(UuidGenerator);
     let prompt_assembly: Arc<dyn PromptAssembler> = Arc::new(PromptAssembly::new());
     let current_user_id = UserId(Uuid::new_v4());
@@ -66,6 +76,7 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState {
         sessions_repo,
         messages_repo,
+        retrivial,
         agent,
         clock,
         id_generator,
@@ -204,6 +215,7 @@ async fn send_message_handle(
         Arc::clone(&state.messages_repo),
         current_user(state.current_user_id),
         Arc::clone(&state.prompt_assembly),
+        Arc::clone(&state.retrivial),
         Arc::clone(&state.agent),
         Arc::clone(&state.clock),
         Arc::clone(&state.id_generator),

@@ -64,6 +64,40 @@ impl RetrivialService for QdRetrivialService {
             ..ScoringOptions::default()
         };
 
-        todo!()
+        let mut retrivial_objects = Vec::with_capacity(search_results.len());
+
+        for search_result in search_results {
+            let context_object = self
+                .context_object_repo
+                .get_by_id(&search_result.context_object_id)
+                .await?;
+
+            let score_input = ScoreInput {
+                semantic_similarity: search_result.score,
+                importance_score: context_object.importance_score(),
+                last_updated_ts: context_object
+                    .updated_ts()
+                    .or(Some(context_object.created_ts())),
+                is_same_location: false,
+                is_related: false,
+            };
+
+            let combined_score = ScoringService::score(
+                &score_input,
+                session.config().scoring_weights(),
+                &scoring_options,
+            );
+
+            retrivial_objects.push(RetrivialObject {
+                context_object,
+                semantic_similarity: search_result.score,
+                combined_score,
+            });
+        }
+
+        retrivial_objects
+            .sort_by(|left, right| right.combined_score.total_cmp(&left.combined_score));
+
+        Ok(retrivial_objects)
     }
 }
