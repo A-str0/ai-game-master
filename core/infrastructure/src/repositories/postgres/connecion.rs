@@ -7,8 +7,9 @@ use diesel::{
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use thiserror::Error;
 
-use crate::repositories::{game_sessions, messages};
+use crate::repositories::{context_objects, game_sessions, messages};
 
+pub const RESOURCE_CONTEXT_OBJECT: &str = "context_object";
 pub const RESOURCE_GAME_SESSION: &str = "game_session";
 pub const RESOURCE_MESSAGE: &str = "message";
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
@@ -72,6 +73,10 @@ impl PgDatabase {
 
     pub fn game_sessions(&self) -> game_sessions::PgGameSessionRepository {
         game_sessions::PgGameSessionRepository::new(self.pool.clone())
+    }
+
+    pub fn context_objects(&self) -> context_objects::PgContextObjectRepository {
+        context_objects::PgContextObjectRepository::new(self.pool.clone())
     }
 
     pub fn messages(&self) -> messages::PgMessageRepository {

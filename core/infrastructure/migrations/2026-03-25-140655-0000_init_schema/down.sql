@@ -1,5 +1,8 @@
 DROP INDEX IF EXISTS idx_messages_session_ts_id;
+DROP INDEX IF EXISTS idx_context_objects_place_id;
+DROP TABLE IF EXISTS context_objects;
 DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS game_sessions;
+DROP TYPE IF EXISTS "ContextObjectType";
 DROP TYPE IF EXISTS "MessageRole";
 DROP TYPE IF EXISTS "SessionMode";
