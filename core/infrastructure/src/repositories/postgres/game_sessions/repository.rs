@@ -6,7 +6,9 @@ use super::{
     models::{GameSessionChangeset, GameSessionRow, NewGameSessionRow},
     schema::game_sessions::dsl,
 };
-use crate::repositories::postgres::{PgPool, RESOURCE_GAME_SESSION, connection, map_diesel_error};
+use crate::repositories::postgres::connecion::{
+    PgPool, RESOURCE_GAME_SESSION, connection, map_diesel_error,
+};
 
 #[derive(Clone)]
 pub struct PgGameSessionRepository {

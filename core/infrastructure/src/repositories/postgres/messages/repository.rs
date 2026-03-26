@@ -6,7 +6,9 @@ use super::{
     models::{MessageRow, NewMessageRow},
     schema::messages::dsl,
 };
-use crate::repositories::postgres::{PgPool, RESOURCE_MESSAGE, connection, map_diesel_error};
+use crate::repositories::postgres::connecion::{
+    PgPool, RESOURCE_MESSAGE, connection, map_diesel_error,
+};
 
 #[derive(Clone)]
 pub struct PgMessageRepository {

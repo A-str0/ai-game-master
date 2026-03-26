@@ -23,7 +23,7 @@ use infrastructure::{
     ports::{
         CurrentUserContext, DefaultAgentOrchestrator, RequestCurrentUser, UtcClock, UuidGenerator,
     },
-    repositories::PgDatabase,
+    repositories::connecion::PgDatabase,
     services::PromptAssembly,
 };
 use serde::{Deserialize, Serialize};

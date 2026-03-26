@@ -1,5 +1,5 @@
 mod postgres;
-mod vector;
+mod qdrant;
 
 pub use postgres::*;
-pub use vector::*;
+pub use qdrant::*;
