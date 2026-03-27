@@ -69,7 +69,7 @@ impl RetrivialService for QdRetrivialService {
         for search_result in search_results {
             let context_object = self
                 .context_object_repo
-                .get_by_id(&search_result.context_object_id)
+                .get_by_id(session.id(), &search_result.context_object_id)
                 .await?;
 
             let score_input = ScoreInput {

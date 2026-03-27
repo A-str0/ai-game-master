@@ -3,8 +3,11 @@ use std::sync::Arc;
 use anyhow::Context;
 use application::{
     AppError,
-    ports::{AgentOrchestrator, CurrentUser, GameSessionRepository, MessageRepository},
-    services::{PromptAssembler, RetrivialService},
+    ports::{
+        AgentOrchestrator, ContextObjectRepository, CurrentUser, GameSessionRepository,
+        MessageRepository,
+    },
+    services::{Embedder, PromptAssembler, RetrivialService, VectorSearcher, WorldMemoryManager},
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,
         GetSessionCommand, GetSessionResponse, GetSessionUseCase, SendMessageCommand,
@@ -24,7 +27,10 @@ use infrastructure::{
         CurrentUserContext, DefaultAgentOrchestrator, RequestCurrentUser, UtcClock, UuidGenerator,
     },
     repositories::connecion::PgDatabase,
-    services::{OpenRouterEmbeddingService, PromptAssembly, QdRetrivialService, QdSearchService},
+    services::{
+        DefaultWorldMemoryManager, OpenRouterEmbeddingService, PromptAssembly, QdRetrivialService,
+        QdSearchService,
+    },
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -35,6 +41,7 @@ struct AppState {
     messages_repo: Arc<dyn MessageRepository>,
     retrivial: Arc<dyn RetrivialService>,
     agent: Arc<dyn AgentOrchestrator>,
+    world_memory: Arc<dyn WorldMemoryManager>,
     clock: Arc<dyn application::ports::Clock>,
     id_generator: Arc<dyn application::ports::IdGenerator>,
     prompt_assembly: Arc<dyn PromptAssembler>,
@@ -59,18 +66,26 @@ async fn main() -> anyhow::Result<()> {
     let clock: Arc<dyn application::ports::Clock> = Arc::new(UtcClock::new());
     let sessions_repo: Arc<dyn GameSessionRepository> = Arc::new(database.game_sessions());
     let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
-    let context_object_repo = Arc::new(database.context_objects());
-    let embedder = Arc::new(OpenRouterEmbeddingService::new().await?);
-    let vector_searcher = Arc::new(QdSearchService);
+    let context_object_repo: Arc<dyn ContextObjectRepository> =
+        Arc::new(database.context_objects());
+    let embedder: Arc<dyn Embedder> = Arc::new(OpenRouterEmbeddingService::new().await?);
+    let vector_searcher: Arc<dyn VectorSearcher> = Arc::new(QdSearchService::new());
     let retrivial: Arc<dyn RetrivialService> = Arc::new(QdRetrivialService::new(
-        embedder,
-        vector_searcher,
-        context_object_repo,
+        Arc::clone(&embedder),
+        Arc::clone(&vector_searcher),
+        Arc::clone(&context_object_repo),
         Arc::clone(&clock),
     ));
     let agent: Arc<dyn AgentOrchestrator> = Arc::new(DefaultAgentOrchestrator::new().await?);
     let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(UuidGenerator);
     let prompt_assembly: Arc<dyn PromptAssembler> = Arc::new(PromptAssembly::new());
+    let world_memory: Arc<dyn WorldMemoryManager> = Arc::new(DefaultWorldMemoryManager::new(
+        Arc::clone(&context_object_repo),
+        Arc::clone(&embedder),
+        Arc::clone(&vector_searcher),
+        Arc::clone(&clock),
+        Arc::clone(&id_generator),
+    ));
     let current_user_id = UserId(Uuid::new_v4());
 
     let state = AppState {
@@ -78,6 +93,7 @@ async fn main() -> anyhow::Result<()> {
         messages_repo,
         retrivial,
         agent,
+        world_memory,
         clock,
         id_generator,
         prompt_assembly,
@@ -127,6 +143,7 @@ async fn create_session_handle(
         current_user(state.current_user_id),
         Arc::clone(&state.clock),
         Arc::clone(&state.id_generator),
+        Arc::clone(&state.world_memory),
     );
 
     let response = use_case.execute(CreateSessionCommand).await?;
@@ -217,6 +234,7 @@ async fn send_message_handle(
         Arc::clone(&state.prompt_assembly),
         Arc::clone(&state.retrivial),
         Arc::clone(&state.agent),
+        Arc::clone(&state.world_memory),
         Arc::clone(&state.clock),
         Arc::clone(&state.id_generator),
     );

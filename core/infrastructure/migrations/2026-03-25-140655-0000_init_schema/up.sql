@@ -42,6 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_session_ts_id
 
 CREATE TABLE IF NOT EXISTS context_objects (
     id UUID PRIMARY KEY,
+    session_id UUID NOT NULL REFERENCES game_sessions(id) ON DELETE CASCADE,
     object_type "ContextObjectType" NOT NULL,
     title TEXT NOT NULL,
     short_desc TEXT NOT NULL,
@@ -57,3 +58,6 @@ CREATE TABLE IF NOT EXISTS context_objects (
 
 CREATE INDEX IF NOT EXISTS idx_context_objects_place_id
     ON context_objects (place_id);
+
+CREATE INDEX IF NOT EXISTS idx_context_objects_session_id
+    ON context_objects (session_id);

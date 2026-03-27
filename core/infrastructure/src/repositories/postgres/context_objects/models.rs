@@ -8,7 +8,9 @@ use diesel_derive_enum::DbEnum;
 use domain::{
     Identifiable as DomainIdentifiable,
     aggregates::ContextObject,
-    value_objects::{AttributeValue, ContextObjectId, ContextObjectType, Provenance},
+    value_objects::{
+        AttributeValue, ContextObjectId, ContextObjectType, GameSessionId, Provenance,
+    },
 };
 use serde_json::{Map, Number, Value};
 use uuid::Uuid;
@@ -55,6 +57,7 @@ impl From<ContextObjectTypeDb> for ContextObjectType {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ContextObjectRow {
     pub id: Uuid,
+    pub session_id: Uuid,
     pub object_type: ContextObjectTypeDb,
     pub title: String,
     pub short_desc: String,
@@ -68,38 +71,10 @@ pub struct ContextObjectRow {
     pub updated_ts: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Insertable)]
-#[diesel(table_name = context_objects)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct NewContextObjectRow {
-    pub id: Uuid,
-    pub object_type: ContextObjectTypeDb,
-    pub title: String,
-    pub short_desc: String,
-    pub long_desc: Option<String>,
-    pub attributes: Value,
-    pub place_id: Option<Uuid>,
-    pub importance_score: f32,
-    pub created_by: String,
-    pub seed: i64,
-    pub created_ts: DateTime<Utc>,
-    pub updated_ts: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, AsChangeset)]
-#[diesel(table_name = context_objects)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ContextObjectChangeset {
-    pub object_type: ContextObjectTypeDb,
-    pub title: String,
-    pub short_desc: String,
-    pub long_desc: Option<String>,
-    pub attributes: Value,
-    pub place_id: Option<Uuid>,
-    pub importance_score: f32,
-    pub created_by: String,
-    pub seed: i64,
-    pub updated_ts: Option<DateTime<Utc>>,
+impl ContextObjectRow {
+    pub fn session_id(&self) -> GameSessionId {
+        GameSessionId(self.session_id)
+    }
 }
 
 impl TryFrom<ContextObjectRow> for ContextObject {
@@ -108,6 +83,7 @@ impl TryFrom<ContextObjectRow> for ContextObject {
     fn try_from(row: ContextObjectRow) -> RepoResult<Self> {
         ContextObject::restore(
             ContextObjectId(row.id),
+            GameSessionId(row.session_id),
             row.object_type.into(),
             row.title,
             row.short_desc,
@@ -123,38 +99,76 @@ impl TryFrom<ContextObjectRow> for ContextObject {
     }
 }
 
+#[derive(Debug, Insertable)]
+#[diesel(table_name = context_objects)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct NewContextObjectRow {
+    pub id: Uuid,
+    pub session_id: Uuid,
+    pub object_type: ContextObjectTypeDb,
+    pub title: String,
+    pub short_desc: String,
+    pub long_desc: Option<String>,
+    pub attributes: Value,
+    pub place_id: Option<Uuid>,
+    pub importance_score: f32,
+    pub created_by: String,
+    pub seed: i64,
+    pub created_ts: DateTime<Utc>,
+    pub updated_ts: Option<DateTime<Utc>>,
+}
+
 impl From<&ContextObject> for NewContextObjectRow {
-    fn from(object: &ContextObject) -> Self {
+    fn from(value: &ContextObject) -> Self {
         Self {
-            id: object.id().0,
-            object_type: (*object.object_type()).into(),
-            title: object.title().to_owned(),
-            short_desc: object.short_desc().to_owned(),
-            long_desc: object.long_desc().cloned(),
-            attributes: attributes_to_json(object.attributes()),
-            place_id: object.place_id().map(|id| id.0),
-            importance_score: object.importance_score(),
-            created_by: object.provenance().created_by().to_owned(),
-            seed: object.provenance().seed(),
-            created_ts: object.created_ts(),
-            updated_ts: object.updated_ts(),
+            id: value.id().0,
+            session_id: value.session_id().0,
+            object_type: (*value.object_type()).into(),
+            title: value.title().to_owned(),
+            short_desc: value.short_desc().to_owned(),
+            long_desc: value.long_desc().cloned(),
+            attributes: attributes_to_json(value.attributes()),
+            place_id: value.place_id().map(|id| id.0),
+            importance_score: value.importance_score(),
+            created_by: value.provenance().created_by().to_owned(),
+            seed: value.provenance().seed(),
+            created_ts: value.created_ts(),
+            updated_ts: value.updated_ts(),
         }
     }
 }
 
+#[derive(Debug, AsChangeset)]
+#[diesel(table_name = context_objects)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct ContextObjectChangeset {
+    pub session_id: Uuid,
+    pub object_type: ContextObjectTypeDb,
+    pub title: String,
+    pub short_desc: String,
+    pub long_desc: Option<String>,
+    pub attributes: Value,
+    pub place_id: Option<Uuid>,
+    pub importance_score: f32,
+    pub created_by: String,
+    pub seed: i64,
+    pub updated_ts: Option<DateTime<Utc>>,
+}
+
 impl From<&ContextObject> for ContextObjectChangeset {
-    fn from(object: &ContextObject) -> Self {
+    fn from(value: &ContextObject) -> Self {
         Self {
-            object_type: (*object.object_type()).into(),
-            title: object.title().to_owned(),
-            short_desc: object.short_desc().to_owned(),
-            long_desc: object.long_desc().cloned(),
-            attributes: attributes_to_json(object.attributes()),
-            place_id: object.place_id().map(|id| id.0),
-            importance_score: object.importance_score(),
-            created_by: object.provenance().created_by().to_owned(),
-            seed: object.provenance().seed(),
-            updated_ts: object.updated_ts(),
+            session_id: value.session_id().0,
+            object_type: (*value.object_type()).into(),
+            title: value.title().to_owned(),
+            short_desc: value.short_desc().to_owned(),
+            long_desc: value.long_desc().cloned(),
+            attributes: attributes_to_json(value.attributes()),
+            place_id: value.place_id().map(|id| id.0),
+            importance_score: value.importance_score(),
+            created_by: value.provenance().created_by().to_owned(),
+            seed: value.provenance().seed(),
+            updated_ts: value.updated_ts(),
         }
     }
 }

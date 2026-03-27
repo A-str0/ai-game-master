@@ -9,6 +9,7 @@ use domain::{
 use crate::{
     AppError,
     ports::{Clock, CurrentUser, GameSessionRepository, IdGenerator},
+    services::WorldMemoryManager,
     use_cases::{AppResult, UseCase},
 };
 
@@ -25,6 +26,7 @@ pub struct CreateSessionUseCase {
     current_user: Arc<dyn CurrentUser>,
     clock: Arc<dyn Clock>,
     id_generator: Arc<dyn IdGenerator>,
+    world_memory: Arc<dyn WorldMemoryManager>,
 }
 
 impl CreateSessionUseCase {
@@ -33,12 +35,14 @@ impl CreateSessionUseCase {
         current_user: Arc<dyn CurrentUser>,
         clock: Arc<dyn Clock>,
         id_generator: Arc<dyn IdGenerator>,
+        world_memory: Arc<dyn WorldMemoryManager>,
     ) -> Self {
         Self {
             sessions_repo,
             current_user,
             clock,
             id_generator,
+            world_memory,
         }
     }
 }
@@ -59,6 +63,7 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
             created_ts,
         );
         self.sessions_repo.create(&session).await?;
+        self.world_memory.initialize_session(*session.id()).await?;
 
         Ok(CreateSessionResponse {
             session_id: *session.id(),

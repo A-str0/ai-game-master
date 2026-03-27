@@ -10,6 +10,7 @@ pub trait PromptAssembler: Send + Sync {
     async fn assemble(
         &self,
         session: &GameSession,
+        recent_messages: &[Message],
         player_message: &Message,
         retrieved_objects: &[PromptContextObject],
     ) -> AppResult<PromptInput>;

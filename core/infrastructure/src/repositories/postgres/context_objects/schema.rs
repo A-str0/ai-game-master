@@ -4,6 +4,7 @@ diesel::table! {
 
     context_objects(id) {
         id -> Uuid,
+        session_id -> Uuid,
         object_type -> ContextObjectTypeDbMapping,
         title -> Text,
         short_desc -> Text,

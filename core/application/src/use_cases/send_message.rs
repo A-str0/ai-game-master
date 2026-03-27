@@ -12,7 +12,7 @@ use crate::{
         AgentOrchestrator, AgentOrchestratorResponse, Clock, CurrentUser, GameSessionRepository,
         IdGenerator, MessageRepository, PromptContextObject,
     },
-    services::{PromptAssembler, RetrivialService},
+    services::{PromptAssembler, RetrivialService, WorldMemoryManager},
     use_cases::UseCase,
 };
 
@@ -32,6 +32,7 @@ pub struct SendMessageUseCase {
     prompt_assembly: Arc<dyn PromptAssembler>,
     retrivial: Arc<dyn RetrivialService>,
     agent: Arc<dyn AgentOrchestrator>,
+    world_memory: Arc<dyn WorldMemoryManager>,
     clock: Arc<dyn Clock>,
     id_generator: Arc<dyn IdGenerator>,
 }
@@ -44,6 +45,7 @@ impl SendMessageUseCase {
         prompt_assembly: Arc<dyn PromptAssembler>,
         retrivial: Arc<dyn RetrivialService>,
         agent: Arc<dyn AgentOrchestrator>,
+        world_memory: Arc<dyn WorldMemoryManager>,
         clock: Arc<dyn Clock>,
         id_generator: Arc<dyn IdGenerator>,
     ) -> Self {
@@ -54,6 +56,7 @@ impl SendMessageUseCase {
             prompt_assembly,
             retrivial,
             agent,
+            world_memory,
             clock,
             id_generator,
         }
@@ -81,6 +84,10 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
         .map_err(AppError::from)?;
 
         self.message_repo.create(&message).await?;
+        let recent_messages = self
+            .message_repo
+            .list_recent(&command.session_id, 20) // TODO: get rid of magic number
+            .await?;
 
         let retrival_objects = self.retrivial.find_for_message(&session, &message).await?;
         let prompt_objects = retrival_objects
@@ -93,9 +100,11 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
 
         let prompt = self
             .prompt_assembly
-            .assemble(&session, &message, &prompt_objects)
+            .assemble(&session, &recent_messages, &message, &prompt_objects)
             .await?;
         let agent_response = self.agent.generate(&prompt).await?;
+
+        let activity_ts = self.clock.now().await;
 
         match agent_response {
             AgentOrchestratorResponse::Text(msg) => {
@@ -104,14 +113,30 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
                     command.session_id,
                     MessageRole::Gm,
                     &msg,
-                    self.clock.now().await,
+                    activity_ts,
                 )
                 .map_err(AppError::from)?;
 
                 self.message_repo.create(&gm_message).await?;
             }
-            AgentOrchestratorResponse::CreateContextObject => {}
+            AgentOrchestratorResponse::CreateContextObject { message, object } => {
+                let gm_message = Message::new(
+                    self.id_generator.next_message_id().await,
+                    command.session_id,
+                    MessageRole::Gm,
+                    &message,
+                    activity_ts,
+                )
+                .map_err(AppError::from)?;
+
+                self.message_repo.create(&gm_message).await?;
+                self.world_memory
+                    .create_context_object(&session, object)
+                    .await?;
+            }
         }
+
+        self.session_repo.update(&session).await?;
 
         Ok(SendMessageResponse {
             player_message_id: *message.id(),

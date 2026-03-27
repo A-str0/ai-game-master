@@ -4,13 +4,16 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     DomainError, DomainResult, Identifiable,
-    value_objects::{AttributeValue, ContextObjectId, ContextObjectType, Provenance},
+    value_objects::{
+        AttributeValue, ContextObjectId, ContextObjectType, GameSessionId, Provenance,
+    },
 };
 
 /// Aggregate Root
 #[derive(Debug, Clone)]
 pub struct ContextObject {
     id: ContextObjectId,
+    session_id: GameSessionId,
     object_type: ContextObjectType,
     title: String,
     short_desc: String,
@@ -71,6 +74,7 @@ impl ContextObject {
 
     pub fn new(
         id: ContextObjectId,
+        session_id: GameSessionId,
         object_type: ContextObjectType,
         title: &str,
         short_desc: &str,
@@ -87,6 +91,7 @@ impl ContextObject {
 
         Ok(Self {
             id,
+            session_id,
             object_type,
             title: title.to_owned(),
             short_desc: short_desc.to_owned(),
@@ -102,6 +107,7 @@ impl ContextObject {
 
     pub fn restore(
         id: ContextObjectId,
+        session_id: GameSessionId,
         object_type: ContextObjectType,
         title: String,
         short_desc: String,
@@ -115,6 +121,7 @@ impl ContextObject {
     ) -> DomainResult<Self> {
         Ok(Self {
             id,
+            session_id,
             object_type,
             title,
             short_desc,
@@ -166,6 +173,10 @@ impl ContextObject {
 
     pub fn updated_ts(&self) -> Option<DateTime<Utc>> {
         self.updated_ts
+    }
+
+    pub fn session_id(&self) -> GameSessionId {
+        self.session_id
     }
 }
 
