@@ -1,6 +1,7 @@
 use domain::value_objects::{ContextObjectId, GameSessionId};
+use thiserror::Error;
 
-use crate::{AppResult, services::Vector};
+use crate::services::Vector;
 
 #[derive(Debug, Clone)]
 pub struct VectorSearchQuery {
@@ -22,9 +23,25 @@ pub struct VectorUpsertQuery {
     pub embedding: Vector,
 }
 
+#[derive(Debug, Error)]
+pub enum VectorSearcherError {
+    #[error("vector search backend unavailable: {details}")]
+    Unavailable { details: String },
+    #[error("vector search backend returned invalid output: {details}")]
+    InvalidResponse { details: String },
+}
+
+pub type VectorSearcherResult<T> = Result<T, VectorSearcherError>;
+
 #[async_trait::async_trait]
 pub trait VectorSearcher: Send + Sync {
-    async fn ensure_session_collection(&self, session_id: GameSessionId) -> AppResult<()>;
-    async fn upsert(&self, query: VectorUpsertQuery) -> AppResult<()>;
-    async fn search(&self, query: VectorSearchQuery) -> AppResult<Vec<VectorSearchResponseObject>>;
+    async fn ensure_session_collection(
+        &self,
+        session_id: GameSessionId,
+    ) -> VectorSearcherResult<()>;
+    async fn upsert(&self, query: VectorUpsertQuery) -> VectorSearcherResult<()>;
+    async fn search(
+        &self,
+        query: VectorSearchQuery,
+    ) -> VectorSearcherResult<Vec<VectorSearchResponseObject>>;
 }

@@ -163,12 +163,20 @@ impl AgentOrchestrator for DefaultAgentOrchestrator {
             .agent
             .run(Task::new(build_task(prompt)))
             .await
-            .map_err(|_| AgentOrchestratorError::Unavailable)?;
+            .map_err(|error| AgentOrchestratorError::Unavailable {
+                details: format!("agent execution failed: {error}"),
+            })?;
 
         if let Some(object) = output.context_object {
             return Ok(AgentOrchestratorResponse::CreateContextObject {
                 message: output.message,
                 object,
+            });
+        }
+
+        if output.message.trim().is_empty() {
+            return Err(AgentOrchestratorError::InvalidResponse {
+                details: String::from("agent returned an empty final message"),
             });
         }
 

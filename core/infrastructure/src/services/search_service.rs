@@ -1,6 +1,6 @@
-use application::{
-    AppError, AppResult,
-    services::{VectorSearchQuery, VectorSearchResponseObject, VectorSearcher, VectorUpsertQuery},
+use application::services::{
+    VectorSearchQuery, VectorSearchResponseObject, VectorSearcher, VectorSearcherError,
+    VectorSearcherResult, VectorUpsertQuery,
 };
 use reqwest::{Client, StatusCode};
 use serde_json::{Value, json};
@@ -34,22 +34,26 @@ impl QdSearchService {
         format!("session_{}", session_id.simple())
     }
 
-    async fn ensure_collection_internal(&self, session_id: Uuid) -> AppResult<()> {
+    async fn ensure_collection_internal(&self, session_id: Uuid) -> VectorSearcherResult<()> {
         let collection_name = self.collection_name(session_id);
         let url = format!("{}/collections/{}", self.base_url, collection_name);
-        let response = self
-            .client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|_| AppError::Unavailable)?;
+        let response = self.client.get(&url).send().await.map_err(|error| {
+            VectorSearcherError::Unavailable {
+                details: format!("qdrant GET {url} failed: {error}"),
+            }
+        })?;
 
         if response.status().is_success() {
             return Ok(());
         }
 
         if response.status() != StatusCode::NOT_FOUND {
-            return Err(AppError::Unavailable);
+            return Err(VectorSearcherError::Unavailable {
+                details: format!(
+                    "qdrant GET {url} returned unexpected status {} while checking collection",
+                    response.status()
+                ),
+            });
         }
 
         let response = self
@@ -63,13 +67,20 @@ impl QdSearchService {
             }))
             .send()
             .await
-            .map_err(|_| AppError::Unavailable)?;
+            .map_err(|error| VectorSearcherError::Unavailable {
+                details: format!("qdrant PUT {url} failed: {error}"),
+            })?;
 
         if response.status().is_success() || response.status() == StatusCode::CONFLICT {
             return Ok(());
         }
 
-        Err(AppError::Unavailable)
+        Err(VectorSearcherError::Unavailable {
+            details: format!(
+                "qdrant PUT {url} returned unexpected status {} while creating collection",
+                response.status()
+            ),
+        })
     }
 }
 
@@ -78,11 +89,11 @@ impl VectorSearcher for QdSearchService {
     async fn ensure_session_collection(
         &self,
         session_id: domain::value_objects::GameSessionId,
-    ) -> AppResult<()> {
+    ) -> VectorSearcherResult<()> {
         self.ensure_collection_internal(session_id.0).await
     }
 
-    async fn upsert(&self, query: VectorUpsertQuery) -> AppResult<()> {
+    async fn upsert(&self, query: VectorUpsertQuery) -> VectorSearcherResult<()> {
         self.ensure_collection_internal(query.session_id.0).await?;
 
         let url = format!(
@@ -104,16 +115,28 @@ impl VectorSearcher for QdSearchService {
             }))
             .send()
             .await
-            .map_err(|_| AppError::Unavailable)?;
+            .map_err(|error| VectorSearcherError::Unavailable {
+                details: format!("qdrant upsert request failed: {error}"),
+            })?;
 
         if response.status().is_success() {
             return Ok(());
         }
 
-        Err(AppError::Unavailable)
+        Err(VectorSearcherError::Unavailable {
+            details: format!(
+                "qdrant upsert for session {} and context object {} returned status {}",
+                query.session_id.0,
+                query.context_object_id.0,
+                response.status()
+            ),
+        })
     }
 
-    async fn search(&self, query: VectorSearchQuery) -> AppResult<Vec<VectorSearchResponseObject>> {
+    async fn search(
+        &self,
+        query: VectorSearchQuery,
+    ) -> VectorSearcherResult<Vec<VectorSearchResponseObject>> {
         let collection_name = self.collection_name(query.session_id.0);
         let url = format!(
             "{}/collections/{}/points/search",
@@ -129,21 +152,38 @@ impl VectorSearcher for QdSearchService {
             }))
             .send()
             .await
-            .map_err(|_| AppError::Unavailable)?;
+            .map_err(|error| VectorSearcherError::Unavailable {
+                details: format!("qdrant search request failed: {error}"),
+            })?;
 
         if response.status() == StatusCode::NOT_FOUND {
             return Ok(Vec::new());
         }
 
         if !response.status().is_success() {
-            return Err(AppError::Unavailable);
+            return Err(VectorSearcherError::Unavailable {
+                details: format!(
+                    "qdrant search for session {} returned status {}",
+                    query.session_id.0,
+                    response.status()
+                ),
+            });
         }
 
-        let body: Value = response.json().await.map_err(|_| AppError::Unavailable)?;
-        let results = body
-            .get("result")
-            .and_then(Value::as_array)
-            .ok_or(AppError::Unavailable)?;
+        let body: Value =
+            response
+                .json()
+                .await
+                .map_err(|error| VectorSearcherError::InvalidResponse {
+                    details: format!("failed to decode qdrant search response body: {error}"),
+                })?;
+        let results = body.get("result").and_then(Value::as_array).ok_or(
+            VectorSearcherError::InvalidResponse {
+                details: String::from(
+                    "qdrant search response does not contain array field `result`",
+                ),
+            },
+        )?;
 
         results
             .iter()
@@ -160,12 +200,18 @@ impl VectorSearcher for QdSearchService {
                             .and_then(parse_uuid_value)
                             .map(domain::value_objects::ContextObjectId)
                     })
-                    .ok_or(AppError::Unavailable)?;
+                    .ok_or(VectorSearcherError::InvalidResponse {
+                        details: format!(
+                            "qdrant search hit is missing a valid context_object_id: {entry}"
+                        ),
+                    })?;
                 let score = entry
                     .get("score")
                     .and_then(Value::as_f64)
                     .map(|value| value as f32)
-                    .ok_or(AppError::Unavailable)?;
+                    .ok_or(VectorSearcherError::InvalidResponse {
+                        details: format!("qdrant search hit is missing numeric score: {entry}"),
+                    })?;
 
                 Ok(VectorSearchResponseObject {
                     context_object_id,

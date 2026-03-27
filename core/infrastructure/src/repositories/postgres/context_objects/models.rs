@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use application::ports::{RepoError, RepoResult};
+use crate::repositories::postgres::connecion::{PgRepositoryError, PgRepositoryResult};
 use chrono::{DateTime, Utc};
 use diesel::sql_types::SqlType;
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable};
@@ -55,7 +55,7 @@ impl From<ContextObjectTypeDb> for ContextObjectType {
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = context_objects)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ContextObjectRow {
+pub(crate) struct ContextObjectRow {
     pub id: Uuid,
     pub session_id: Uuid,
     pub object_type: ContextObjectTypeDb,
@@ -71,16 +71,10 @@ pub struct ContextObjectRow {
     pub updated_ts: Option<DateTime<Utc>>,
 }
 
-impl ContextObjectRow {
-    pub fn session_id(&self) -> GameSessionId {
-        GameSessionId(self.session_id)
-    }
-}
-
 impl TryFrom<ContextObjectRow> for ContextObject {
-    type Error = RepoError;
+    type Error = PgRepositoryError;
 
-    fn try_from(row: ContextObjectRow) -> RepoResult<Self> {
+    fn try_from(row: ContextObjectRow) -> PgRepositoryResult<Self> {
         ContextObject::restore(
             ContextObjectId(row.id),
             GameSessionId(row.session_id),
@@ -95,14 +89,16 @@ impl TryFrom<ContextObjectRow> for ContextObject {
             row.created_ts,
             row.updated_ts,
         )
-        .map_err(|_| RepoError::Unavailable)
+        .map_err(|error| PgRepositoryError::Internal {
+            details: format!("context_object row violates domain invariants: {error}"),
+        })
     }
 }
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = context_objects)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct NewContextObjectRow {
+pub(crate) struct NewContextObjectRow {
     pub id: Uuid,
     pub session_id: Uuid,
     pub object_type: ContextObjectTypeDb,
@@ -141,7 +137,7 @@ impl From<&ContextObject> for NewContextObjectRow {
 #[derive(Debug, AsChangeset)]
 #[diesel(table_name = context_objects)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ContextObjectChangeset {
+pub(crate) struct ContextObjectChangeset {
     pub session_id: Uuid,
     pub object_type: ContextObjectTypeDb,
     pub title: String,
@@ -193,9 +189,11 @@ fn attribute_to_json(value: &AttributeValue) -> Value {
     }
 }
 
-fn json_to_attributes(value: Value) -> RepoResult<HashMap<String, AttributeValue>> {
+fn json_to_attributes(value: Value) -> PgRepositoryResult<HashMap<String, AttributeValue>> {
     let Value::Object(object) = value else {
-        return Err(RepoError::Unavailable);
+        return Err(PgRepositoryError::Internal {
+            details: String::from("context_object attributes column is not a JSON object"),
+        });
     };
 
     object
@@ -204,14 +202,20 @@ fn json_to_attributes(value: Value) -> RepoResult<HashMap<String, AttributeValue
         .collect()
 }
 
-fn json_to_attribute(value: Value) -> RepoResult<AttributeValue> {
+fn json_to_attribute(value: Value) -> PgRepositoryResult<AttributeValue> {
     match value {
         Value::String(text) => Ok(AttributeValue::Text(text)),
-        Value::Number(number) => number
-            .as_f64()
-            .map(AttributeValue::Number)
-            .ok_or(RepoError::Unavailable),
+        Value::Number(number) => {
+            number
+                .as_f64()
+                .map(AttributeValue::Number)
+                .ok_or(PgRepositoryError::Internal {
+                    details: String::from("numeric attribute cannot be represented as f64"),
+                })
+        }
         Value::Bool(flag) => Ok(AttributeValue::Bool(flag)),
-        _ => Err(RepoError::Unavailable),
+        _ => Err(PgRepositoryError::Internal {
+            details: String::from("attributes may contain only string, number, or bool values"),
+        }),
     }
 }

@@ -1,6 +1,5 @@
 use domain::aggregates::{ContextObject, GameSession, Message};
-
-use crate::AppResult;
+use thiserror::Error;
 
 #[derive(Debug, Clone)]
 pub struct RetrivialObject {
@@ -9,11 +8,21 @@ pub struct RetrivialObject {
     pub combined_score: f32,
 }
 
+#[derive(Debug, Error)]
+pub enum RetrivialServiceError {
+    #[error("retrivial service unavailable: {details}")]
+    Unavailable { details: String },
+    #[error("retrivial service failed internally: {details}")]
+    Internal { details: String },
+}
+
+pub type RetrivialServiceResult<T> = Result<T, RetrivialServiceError>;
+
 #[async_trait::async_trait]
 pub trait RetrivialService: Send + Sync {
     async fn find_for_message(
         &self,
         session: &GameSession,
         player_message: &Message,
-    ) -> AppResult<Vec<RetrivialObject>>;
+    ) -> RetrivialServiceResult<Vec<RetrivialObject>>;
 }

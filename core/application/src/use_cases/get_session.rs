@@ -64,7 +64,14 @@ impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
         let session = self.sessions_repo.get_by_id(&command.session_id).await?;
 
         if session.owner_id() != &current_user_id {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden {
+                details: format!(
+                    "user {} is not allowed to access session {} owned by {}",
+                    current_user_id.0,
+                    command.session_id.0,
+                    session.owner_id().0
+                ),
+            });
         }
 
         Ok(GetSessionResponse {

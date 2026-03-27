@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use application::{
-    AppError, AppResult,
-    services::{Embedder, EmbedderQuery, EmbedderResponse},
+use application::services::{
+    Embedder, EmbedderError, EmbedderQuery, EmbedderResponse, EmbedderResult,
 };
 use autoagents::{
     llm::{backends::openai::OpenAI, embedding::EmbeddingProvider},
@@ -37,14 +36,19 @@ impl OpenRouterEmbeddingService {
 
 #[async_trait::async_trait]
 impl Embedder for OpenRouterEmbeddingService {
-    async fn create_embedding(&self, query: EmbedderQuery) -> AppResult<EmbedderResponse> {
-        Ok(EmbedderResponse {
-            vector: self
-                .handle
-                .embed(vec![query.text])
-                .await
-                .map_err(|_| AppError::Unavailable)?[0] // TODO: fix this shit!!!!!
-                .clone(),
-        })
+    async fn create_embedding(&self, query: EmbedderQuery) -> EmbedderResult<EmbedderResponse> {
+        let vectors = self.handle.embed(vec![query.text]).await.map_err(|error| {
+            EmbedderError::Unavailable {
+                details: format!("openrouter embedding request failed: {error}"),
+            }
+        })?;
+        let vector = vectors
+            .into_iter()
+            .next()
+            .ok_or(EmbedderError::InvalidResponse {
+                details: String::from("embedding backend returned an empty vector list"),
+            })?;
+
+        Ok(EmbedderResponse { vector })
     }
 }

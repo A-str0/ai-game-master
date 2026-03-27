@@ -274,10 +274,11 @@ impl IntoResponse for ApiError {
             ApiError::App(error) => {
                 let status = match error {
                     AppError::NotFound { .. } => StatusCode::NOT_FOUND,
-                    AppError::Unauthenticated => StatusCode::UNAUTHORIZED,
-                    AppError::Forbidden => StatusCode::FORBIDDEN,
+                    AppError::Unauthenticated { .. } => StatusCode::UNAUTHORIZED,
+                    AppError::Forbidden { .. } => StatusCode::FORBIDDEN,
                     AppError::Conflict { .. } => StatusCode::CONFLICT,
-                    AppError::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
+                    AppError::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
+                    AppError::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
                     AppError::Domain(_) => StatusCode::UNPROCESSABLE_ENTITY,
                 };
 

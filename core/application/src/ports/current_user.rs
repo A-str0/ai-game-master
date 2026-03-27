@@ -3,12 +3,12 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum CurrentUserError {
-    #[error("authentication required")]
-    Unauthenticated,
-    #[error("access denied")]
-    Forbidden,
-    #[error("authentication backend unavailable")]
-    Unavailable,
+    #[error("authentication required: {details}")]
+    Unauthenticated { details: String },
+    #[error("access denied: {details}")]
+    Forbidden { details: String },
+    #[error("authentication backend unavailable: {details}")]
+    Unavailable { details: String },
 }
 
 pub type CurrentUserResult<T> = Result<T, CurrentUserError>;

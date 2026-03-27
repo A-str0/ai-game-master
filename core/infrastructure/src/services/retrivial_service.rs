@@ -1,9 +1,8 @@
 use application::{
-    AppResult,
     ports::{Clock, ContextObjectRepository},
     services::{
-        Embedder, EmbedderQuery, RetrivialObject, RetrivialService, VectorSearchQuery,
-        VectorSearcher,
+        Embedder, EmbedderQuery, RetrivialObject, RetrivialService, RetrivialServiceError,
+        RetrivialServiceResult, VectorSearchQuery, VectorSearcher,
     },
 };
 use domain::{
@@ -42,13 +41,14 @@ impl RetrivialService for QdRetrivialService {
         &self,
         session: &GameSession,
         player_message: &Message,
-    ) -> AppResult<Vec<RetrivialObject>> {
+    ) -> RetrivialServiceResult<Vec<RetrivialObject>> {
         let embedding = self
             .embedder
             .create_embedding(EmbedderQuery {
                 text: player_message.text().to_owned(),
             })
-            .await?;
+            .await
+            .map_err(map_embedder_error)?;
 
         let search_results = self
             .vector_searcher
@@ -57,7 +57,8 @@ impl RetrivialService for QdRetrivialService {
                 embedding: embedding.vector,
                 k: session.config().retrivial_k(),
             })
-            .await?;
+            .await
+            .map_err(map_vector_searcher_error)?;
 
         let scoring_options = ScoringOptions {
             now: self.clock.now().await,
@@ -70,7 +71,8 @@ impl RetrivialService for QdRetrivialService {
             let context_object = self
                 .context_object_repo
                 .get_by_id(session.id(), &search_result.context_object_id)
-                .await?;
+                .await
+                .map_err(map_context_object_repository_error)?;
 
             let score_input = ScoreInput {
                 semantic_similarity: search_result.score,
@@ -99,5 +101,68 @@ impl RetrivialService for QdRetrivialService {
             .sort_by(|left, right| right.combined_score.total_cmp(&left.combined_score));
 
         Ok(retrivial_objects)
+    }
+}
+
+fn map_embedder_error(error: application::services::EmbedderError) -> RetrivialServiceError {
+    match error {
+        application::services::EmbedderError::Unavailable { details } => {
+            RetrivialServiceError::Unavailable {
+                details: format!("failed to embed player message: {details}"),
+            }
+        }
+        application::services::EmbedderError::InvalidResponse { details } => {
+            RetrivialServiceError::Internal {
+                details: format!("embedder returned invalid data for player message: {details}"),
+            }
+        }
+    }
+}
+
+fn map_vector_searcher_error(
+    error: application::services::VectorSearcherError,
+) -> RetrivialServiceError {
+    match error {
+        application::services::VectorSearcherError::Unavailable { details } => {
+            RetrivialServiceError::Unavailable {
+                details: format!("vector search failed during retrieval: {details}"),
+            }
+        }
+        application::services::VectorSearcherError::InvalidResponse { details } => {
+            RetrivialServiceError::Internal {
+                details: format!("vector search returned invalid data during retrieval: {details}"),
+            }
+        }
+    }
+}
+
+fn map_context_object_repository_error(
+    error: application::ports::ContextObjectRepositoryError,
+) -> RetrivialServiceError {
+    match error {
+        application::ports::ContextObjectRepositoryError::Unavailable { details } => {
+            RetrivialServiceError::Unavailable {
+                details: format!("failed to load retrieved context object from storage: {details}"),
+            }
+        }
+        application::ports::ContextObjectRepositoryError::NotFound { resource, details } => {
+            RetrivialServiceError::Internal {
+                details: format!(
+                    "retrieval returned {resource} id that does not exist in storage: {details}"
+                ),
+            }
+        }
+        application::ports::ContextObjectRepositoryError::Conflict { resource, details } => {
+            RetrivialServiceError::Internal {
+                details: format!(
+                    "unexpected conflict while loading retrieved {resource}: {details}"
+                ),
+            }
+        }
+        application::ports::ContextObjectRepositoryError::Internal { details } => {
+            RetrivialServiceError::Internal {
+                details: format!("context object storage returned invalid data: {details}"),
+            }
+        }
     }
 }

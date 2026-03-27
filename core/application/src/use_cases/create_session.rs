@@ -53,7 +53,10 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
         let current_user_id = self.current_user.current_user_id().await?;
 
         let rng_state = RngState::default();
-        let seed = i64::try_from(rng_state.seed()).map_err(|_| AppError::Unavailable)?;
+        let seed = i64::try_from(rng_state.seed()).map_err(|_| AppError::Internal {
+            component: "CreateSessionUseCase",
+            details: format!("failed to convert rng seed {} to i64", rng_state.seed()),
+        })?;
         let created_ts = self.clock.now().await;
         let session = GameSession::new(
             self.id_generator.next_game_session_id().await,

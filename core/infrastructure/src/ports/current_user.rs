@@ -40,6 +40,8 @@ impl CurrentUser for RequestCurrentUser {
     async fn current_user_id(&self) -> CurrentUserResult<UserId> {
         self.context
             .user_id
-            .ok_or(CurrentUserError::Unauthenticated)
+            .ok_or(CurrentUserError::Unauthenticated {
+                details: String::from("request context does not contain an authenticated user"),
+            })
     }
 }

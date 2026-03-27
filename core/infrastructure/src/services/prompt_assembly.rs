@@ -1,7 +1,6 @@
 use application::{
-    AppResult,
     ports::{PromptContextObject, PromptInput, PromptMessage},
-    services::PromptAssembler,
+    services::{PromptAssembler, PromptAssemblerResult},
 };
 use domain::{
     Identifiable,
@@ -29,7 +28,7 @@ impl PromptAssembler for PromptAssembly {
         recent_messages: &[Message],
         player_message: &Message,
         retrieved_objects: &[PromptContextObject],
-    ) -> AppResult<PromptInput> {
+    ) -> PromptAssemblerResult<PromptInput> {
         Ok(PromptInput {
             system_prompt: String::from(SYSTEM_PROMPT),
             world_summary: format!(

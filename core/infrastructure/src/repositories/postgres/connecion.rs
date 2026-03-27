@@ -1,4 +1,3 @@
-use application::ports::{RepoError, RepoResult};
 use diesel::{
     PgConnection,
     r2d2::{self, ConnectionManager},
@@ -29,16 +28,56 @@ pub enum PgDatabaseError {
 
 type PgDatabaseResult<T> = Result<T, PgDatabaseError>;
 
-pub(crate) fn map_diesel_error(error: DieselError, resource: &'static str) -> RepoError {
+#[derive(Debug, Error)]
+pub(crate) enum PgRepositoryError {
+    #[error("{resource} not found: {details}")]
+    NotFound {
+        resource: &'static str,
+        details: String,
+    },
+    #[error("{resource} already exists: {details}")]
+    Conflict {
+        resource: &'static str,
+        details: String,
+    },
+    #[error("postgres unavailable: {details}")]
+    Unavailable { details: String },
+    #[error("postgres returned invalid data: {details}")]
+    Internal { details: String },
+}
+
+impl PgRepositoryError {
+    pub(crate) fn not_found(resource: &'static str, details: impl Into<String>) -> Self {
+        Self::NotFound {
+            resource,
+            details: details.into(),
+        }
+    }
+
+    pub(crate) fn conflict(resource: &'static str, details: impl Into<String>) -> Self {
+        Self::Conflict {
+            resource,
+            details: details.into(),
+        }
+    }
+}
+
+pub(crate) type PgRepositoryResult<T> = Result<T, PgRepositoryError>;
+
+pub(crate) fn map_diesel_error(error: DieselError, resource: &'static str) -> PgRepositoryError {
     match error {
-        DieselError::NotFound => RepoError::not_found(resource),
+        DieselError::NotFound => {
+            PgRepositoryError::not_found(resource, "diesel query returned no rows")
+        }
         DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _) => {
-            RepoError::conflict(resource)
+            PgRepositoryError::conflict(resource, error.to_string())
         }
         DieselError::DatabaseError(DatabaseErrorKind::ForeignKeyViolation, _) => {
-            RepoError::not_found(resource)
+            PgRepositoryError::not_found(resource, error.to_string())
         }
-        _ => RepoError::Unavailable,
+        _ => PgRepositoryError::Unavailable {
+            details: error.to_string(),
+        },
     }
 }
 
@@ -84,6 +123,8 @@ impl PgDatabase {
     }
 }
 
-pub fn connection(pool: &PgPool) -> RepoResult<PgPooledConnection> {
-    pool.get().map_err(|_| RepoError::Unavailable)
+pub(crate) fn connection(pool: &PgPool) -> PgRepositoryResult<PgPooledConnection> {
+    pool.get().map_err(|error| PgRepositoryError::Unavailable {
+        details: format!("failed to get postgres connection from pool: {error}"),
+    })
 }
