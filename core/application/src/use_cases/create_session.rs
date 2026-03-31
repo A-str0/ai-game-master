@@ -64,7 +64,7 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
             created_ts,
         );
 
-        self.sessions_repo.create(&session).await?;
+        self.sessions_repo.insert(&session).await?;
         self.vector_searcher
             .ensure_session_collection(*session.id())
             .await?;

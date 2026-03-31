@@ -1,12 +1,10 @@
 use domain::value_objects::{ContextObjectId, GameSessionId};
 use thiserror::Error;
 
-use crate::ports::Vector;
-
 #[derive(Debug, Clone)]
 pub struct VectorSearchQuery {
     pub session_id: GameSessionId,
-    pub embedding: Vector,
+    pub embedding: Vec<f32>,
     pub k: u8,
 }
 
@@ -20,7 +18,7 @@ pub struct VectorSearchResponseObject {
 pub struct VectorUpsertQuery {
     pub session_id: GameSessionId,
     pub context_object_id: ContextObjectId,
-    pub embedding: Vector,
+    pub embedding: Vec<f32>,
 }
 
 #[derive(Debug, Error)]

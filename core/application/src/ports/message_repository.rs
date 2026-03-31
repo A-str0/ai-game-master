@@ -17,7 +17,7 @@ pub type MessageRepositoryResult<T> = Result<T, MessageRepositoryError>;
 
 #[async_trait::async_trait]
 pub trait MessageRepository: Send + Sync {
-    async fn create(&self, message: &Message) -> MessageRepositoryResult<()>;
+    async fn insert(&self, message: &Message) -> MessageRepositoryResult<()>;
     async fn list_recent(
         &self,
         session_id: &GameSessionId,

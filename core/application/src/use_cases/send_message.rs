@@ -8,10 +8,13 @@ use domain::{
 
 use crate::{
     ports::{
-        AgentOrchestrator, AgentOrchestratorResponse, Clock, ContextObjectRepository, Embedder,
-        EmbedderQuery, GameSessionRepository, IdGenerator, MessageRepository, PromptAssembler,
-        PromptContextObject, ProposedContextObject, RetrivialCandidate, RetrivialService, UserPort,
-        UserPortError, VectorSearchQuery, VectorSearcher, VectorUpsertQuery,
+        AgentOrchestrator, AgentOrchestratorResponse, Clock, ContextObjectRepository,
+        GameSessionRepository, IdGenerator, MessageRepository, PromptContextObject,
+        ProposedContextObject, UserPort, UserPortError, VectorSearchQuery, VectorSearcher,
+        VectorUpsertQuery,
+    },
+    services::{
+        Embedder, EmbedderQuery, PromptAssembler, RetrivialCandidate, RetrivialServicePort,
     },
     use_cases::{UseCase, UseCaseResult},
 };
@@ -31,7 +34,7 @@ pub struct SendMessageUseCase {
     context_object_repo: Arc<dyn ContextObjectRepository>,
     current_user: Arc<dyn UserPort>,
     prompt_assembly: Arc<dyn PromptAssembler>,
-    retrivial: Arc<dyn RetrivialService>,
+    retrivial: Arc<dyn RetrivialServicePort>,
     agent: Arc<dyn AgentOrchestrator>,
     embedder: Arc<dyn Embedder>,
     vector_searcher: Arc<dyn VectorSearcher>,
@@ -46,7 +49,7 @@ impl SendMessageUseCase {
         context_object_repo: Arc<dyn ContextObjectRepository>,
         current_user: Arc<dyn UserPort>,
         prompt_assembly: Arc<dyn PromptAssembler>,
-        retrivial: Arc<dyn RetrivialService>,
+        retrivial: Arc<dyn RetrivialServicePort>,
         agent: Arc<dyn AgentOrchestrator>,
         embedder: Arc<dyn Embedder>,
         vector_searcher: Arc<dyn VectorSearcher>,
@@ -71,7 +74,7 @@ impl SendMessageUseCase {
     async fn create_context_object(
         &self,
         session: &GameSession,
-        object: ProposedContextObject,
+        objects: ProposedContextObject,
         created_ts: chrono::DateTime<chrono::Utc>,
     ) -> UseCaseResult<ContextObject> {
         let provenance =
@@ -79,18 +82,18 @@ impl SendMessageUseCase {
         let context_object = ContextObject::new(
             self.id_generator.next_context_object_id().await,
             *session.id(),
-            object.object_type,
-            &object.title,
-            &object.short_desc,
-            object.long_desc.as_deref(),
-            object.attributes,
+            objects.object_type,
+            &objects.title,
+            &objects.short_desc,
+            objects.long_desc.as_deref(),
+            objects.attributes,
             None,
-            object.importance_score,
+            objects.importance_score,
             provenance,
             created_ts,
         )?;
 
-        self.context_object_repo.create(&context_object).await?;
+        self.context_object_repo.insert(&context_object).await?;
 
         let embedding = self
             .embedder
@@ -171,7 +174,7 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
             self.clock.now().await,
         )?;
 
-        self.message_repo.create(&message).await?;
+        self.message_repo.insert(&message).await?;
 
         let recent_messages = self
             .message_repo
@@ -209,9 +212,9 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
                     activity_ts,
                 )?;
 
-                self.message_repo.create(&gm_message).await?;
+                self.message_repo.insert(&gm_message).await?;
             }
-            AgentOrchestratorResponse::CreateContextObject { message, object } => {
+            AgentOrchestratorResponse::CreateContextObjects { message, objects } => {
                 let gm_message = Message::new(
                     self.id_generator.next_message_id().await,
                     command.session_id,
@@ -220,9 +223,11 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
                     activity_ts,
                 )?;
 
-                self.message_repo.create(&gm_message).await?;
-                self.create_context_object(&session, object, activity_ts)
-                    .await?;
+                self.message_repo.insert(&gm_message).await?;
+                for object in objects {
+                    self.create_context_object(&session, object, activity_ts)
+                        .await?;
+                }
             }
         }
 

@@ -38,9 +38,9 @@ pub struct ProposedContextObject {
 #[derive(Debug, Clone)]
 pub enum AgentOrchestratorResponse {
     Text(String),
-    CreateContextObject {
+    CreateContextObjects {
         message: String,
-        object: ProposedContextObject,
+        objects: Vec<ProposedContextObject>,
     },
 }
 

@@ -20,7 +20,7 @@ pub type ContextObjectRepositoryResult<T> = Result<T, ContextObjectRepositoryErr
 
 #[async_trait::async_trait]
 pub trait ContextObjectRepository: Send + Sync {
-    async fn create(&self, context_object: &ContextObject) -> ContextObjectRepositoryResult<()>;
+    async fn insert(&self, context_object: &ContextObject) -> ContextObjectRepositoryResult<()>;
     async fn get_by_id(
         &self,
         session_id: &GameSessionId,

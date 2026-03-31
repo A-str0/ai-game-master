@@ -17,7 +17,7 @@ pub type GameSessionRepositoryResult<T> = Result<T, GameSessionRepositoryError>;
 
 #[async_trait::async_trait]
 pub trait GameSessionRepository: Send + Sync {
-    async fn create(&self, session: &GameSession) -> GameSessionRepositoryResult<()>;
+    async fn insert(&self, session: &GameSession) -> GameSessionRepositoryResult<()>;
     async fn get_by_id(&self, id: &GameSessionId) -> GameSessionRepositoryResult<GameSession>;
     async fn update(&self, session: &GameSession) -> GameSessionRepositoryResult<()>;
 }
