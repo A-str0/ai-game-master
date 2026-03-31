@@ -3,36 +3,14 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum MessageRepositoryError {
-    #[error("{resource} not found: {details}")]
-    NotFound {
-        resource: &'static str,
-        details: String,
-    },
-    #[error("{resource} already exists: {details}")]
-    Conflict {
-        resource: &'static str,
-        details: String,
-    },
-    #[error("message storage unavailable: {details}")]
+    #[error("Message not found: {details}")]
+    NotFound { details: String },
+    #[error("Message conflict: {details}")]
+    Conflict { details: String },
+    #[error("MessageRepository unavailable: {details}")]
     Unavailable { details: String },
-    #[error("message storage returned invalid data: {details}")]
+    #[error("MessageRepository returned invalid data: {details}")]
     Internal { details: String },
-}
-
-impl MessageRepositoryError {
-    pub fn not_found(resource: &'static str, details: impl Into<String>) -> Self {
-        Self::NotFound {
-            resource,
-            details: details.into(),
-        }
-    }
-
-    pub fn conflict(resource: &'static str, details: impl Into<String>) -> Self {
-        Self::Conflict {
-            resource,
-            details: details.into(),
-        }
-    }
 }
 
 pub type MessageRepositoryResult<T> = Result<T, MessageRepositoryError>;

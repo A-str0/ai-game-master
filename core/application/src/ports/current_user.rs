@@ -2,18 +2,18 @@ use domain::value_objects::UserId;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum CurrentUserError {
-    #[error("authentication required: {details}")]
-    Unauthenticated { details: String },
-    #[error("access denied: {details}")]
-    Forbidden { details: String },
-    #[error("authentication backend unavailable: {details}")]
-    Unavailable { details: String },
+pub enum UserPortError {
+    #[error("UserPort authentication required")]
+    Unauthenticated,
+    #[error("UserPort access denied")]
+    Forbidden,
+    #[error("UserPort authentication backend unavailable")]
+    Unavailable,
 }
 
-pub type CurrentUserResult<T> = Result<T, CurrentUserError>;
+pub type UserPortResult<T> = Result<T, UserPortError>;
 
 #[async_trait::async_trait]
-pub trait CurrentUser: Send + Sync {
-    async fn current_user_id(&self) -> CurrentUserResult<UserId>;
+pub trait UserPort: Send + Sync {
+    async fn current_user_id(&self) -> UserPortResult<UserId>;
 }

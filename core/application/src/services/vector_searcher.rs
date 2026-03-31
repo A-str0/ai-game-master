@@ -25,9 +25,9 @@ pub struct VectorUpsertQuery {
 
 #[derive(Debug, Error)]
 pub enum VectorSearcherError {
-    #[error("vector search backend unavailable: {details}")]
+    #[error("VectorSearcher backend unavailable: {details}")]
     Unavailable { details: String },
-    #[error("vector search backend returned invalid output: {details}")]
+    #[error("VectorSearcher backend returned invalid output: {details}")]
     InvalidResponse { details: String },
 }
 

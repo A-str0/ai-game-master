@@ -3,13 +3,25 @@ use application::services::{
     VectorSearcherResult, VectorUpsertQuery,
 };
 use qdrant_client::{
-    Payload, Qdrant,
+    Payload, Qdrant, QdrantError,
     qdrant::{
         CreateCollectionBuilder, Distance, PointStruct, SearchPointsBuilder, UpsertPointsBuilder,
         VectorParamsBuilder, point_id::PointIdOptions, value::Kind,
     },
 };
 use uuid::Uuid;
+
+trait QdrantResultExt<T> {
+    fn into_vector_searcher(self) -> VectorSearcherResult<T>;
+}
+
+impl<T> QdrantResultExt<T> for Result<T, QdrantError> {
+    fn into_vector_searcher(self) -> VectorSearcherResult<T> {
+        self.map_err(|error| VectorSearcherError::Unavailable {
+            details: error.to_string(),
+        })
+    }
+}
 
 pub struct QdSearchService {
     client: Option<Qdrant>,
@@ -68,7 +80,7 @@ impl QdSearchService {
         if client
             .collection_exists(&collection_name)
             .await
-            .map_err(map_qdrant_unavailable)?
+            .into_vector_searcher()?
         {
             return Ok(());
         }
@@ -91,7 +103,9 @@ impl QdSearchService {
                 {
                     Ok(())
                 } else {
-                    Err(map_qdrant_unavailable(error))
+                    Err(VectorSearcherError::Unavailable {
+                        details: error.to_string(),
+                    })
                 }
             }
         }
@@ -123,7 +137,7 @@ impl VectorSearcher for QdSearchService {
         client
             .upsert_points(UpsertPointsBuilder::new(&collection_name, vec![point]).wait(true))
             .await
-            .map_err(map_qdrant_unavailable)?;
+            .into_vector_searcher()?;
 
         Ok(())
     }
@@ -138,7 +152,7 @@ impl VectorSearcher for QdSearchService {
         if !client
             .collection_exists(&collection_name)
             .await
-            .map_err(map_qdrant_unavailable)?
+            .into_vector_searcher()?
         {
             return Ok(Vec::new());
         }
@@ -149,7 +163,7 @@ impl VectorSearcher for QdSearchService {
                     .with_payload(true),
             )
             .await
-            .map_err(map_qdrant_unavailable)?;
+            .into_vector_searcher()?;
 
         response
             .result
@@ -163,12 +177,6 @@ impl VectorSearcher for QdSearchService {
                 })
             })
             .collect()
-    }
-}
-
-fn map_qdrant_unavailable(error: impl std::fmt::Display) -> VectorSearcherError {
-    VectorSearcherError::Unavailable {
-        details: format!("qdrant request failed: {error}"),
     }
 }
 

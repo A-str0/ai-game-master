@@ -6,9 +6,8 @@ use domain::{
 };
 
 use crate::{
-    AppError,
-    ports::{CurrentUser, GameSessionRepository},
-    use_cases::{AppResult, UseCase},
+    ports::{GameSessionRepository, UserPort, UserPortError},
+    use_cases::{UseCase, UseCaseResult},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,13 +40,13 @@ pub struct GetSessionResponse {
 
 pub struct GetSessionUseCase {
     sessions_repo: Arc<dyn GameSessionRepository>,
-    current_user: Arc<dyn CurrentUser>,
+    current_user: Arc<dyn UserPort>,
 }
 
 impl GetSessionUseCase {
     pub fn new(
         sessions_repo: Arc<dyn GameSessionRepository>,
-        current_user: Arc<dyn CurrentUser>,
+        current_user: Arc<dyn UserPort>,
     ) -> Self {
         Self {
             sessions_repo,
@@ -58,20 +57,12 @@ impl GetSessionUseCase {
 
 #[async_trait::async_trait]
 impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
-    async fn execute(&self, command: GetSessionCommand) -> AppResult<GetSessionResponse> {
+    async fn execute(&self, command: GetSessionCommand) -> UseCaseResult<GetSessionResponse> {
         let current_user_id = self.current_user.current_user_id().await?;
-
         let session = self.sessions_repo.get_by_id(&command.session_id).await?;
 
         if session.owner_id() != &current_user_id {
-            return Err(AppError::Forbidden {
-                details: format!(
-                    "user {} is not allowed to access session {} owned by {}",
-                    current_user_id.0,
-                    command.session_id.0,
-                    session.owner_id().0
-                ),
-            });
+            return Err(UserPortError::Forbidden.into());
         }
 
         Ok(GetSessionResponse {

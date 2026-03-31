@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use anyhow::Context;
+use anyhow::{Context, Result};
 use application::{
-    AppError,
     ports::{
-        AgentOrchestrator, ContextObjectRepository, CurrentUser, GameSessionRepository,
-        MessageRepository,
+        AgentOrchestrator, ContextObjectRepository, GameSessionRepository, MessageRepository,
+        UserPort,
     },
-    services::{Embedder, PromptAssembler, RetrivialService, VectorSearcher, WorldMemoryManager},
+    services::{Embedder, PromptAssembler, RetrivialService, VectorSearcher},
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,
         GetSessionCommand, GetSessionResponse, GetSessionUseCase, SendMessageCommand,
@@ -17,8 +16,6 @@ use application::{
 use axum::{
     Json, Router,
     extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
     routing::{get, post},
 };
 use domain::value_objects::{GameSessionId, UserId};
@@ -27,10 +24,7 @@ use infrastructure::{
         CurrentUserContext, DefaultAgentOrchestrator, RequestCurrentUser, UtcClock, UuidGenerator,
     },
     repositories::connecion::PgDatabase,
-    services::{
-        DefaultWorldMemoryManager, OpenRouterEmbeddingService, PromptAssembly, QdRetrivialService,
-        QdSearchService,
-    },
+    services::{OpenRouterEmbeddingService, PromptAssembly, QdRetrivialService, QdSearchService},
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -39,16 +33,18 @@ use uuid::Uuid;
 struct AppState {
     sessions_repo: Arc<dyn GameSessionRepository>,
     messages_repo: Arc<dyn MessageRepository>,
+    context_object_repo: Arc<dyn ContextObjectRepository>,
     retrivial: Arc<dyn RetrivialService>,
     agent: Arc<dyn AgentOrchestrator>,
-    world_memory: Arc<dyn WorldMemoryManager>,
+    embedder: Arc<dyn Embedder>,
+    vector_searcher: Arc<dyn VectorSearcher>,
     clock: Arc<dyn application::ports::Clock>,
     id_generator: Arc<dyn application::ports::IdGenerator>,
     prompt_assembly: Arc<dyn PromptAssembler>,
     current_user_id: UserId,
 }
 
-fn current_user(user_id: UserId) -> Arc<dyn CurrentUser> {
+fn current_user(user_id: UserId) -> Arc<dyn UserPort> {
     let context = CurrentUserContext::from(user_id);
     Arc::new(RequestCurrentUser::new(context))
 }
@@ -70,30 +66,20 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(database.context_objects());
     let embedder: Arc<dyn Embedder> = Arc::new(OpenRouterEmbeddingService::new().await?);
     let vector_searcher: Arc<dyn VectorSearcher> = Arc::new(QdSearchService::new());
-    let retrivial: Arc<dyn RetrivialService> = Arc::new(QdRetrivialService::new(
-        Arc::clone(&embedder),
-        Arc::clone(&vector_searcher),
-        Arc::clone(&context_object_repo),
-        Arc::clone(&clock),
-    ));
+    let retrivial: Arc<dyn RetrivialService> = Arc::new(QdRetrivialService::new());
     let agent: Arc<dyn AgentOrchestrator> = Arc::new(DefaultAgentOrchestrator::new().await?);
     let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(UuidGenerator);
     let prompt_assembly: Arc<dyn PromptAssembler> = Arc::new(PromptAssembly::new());
-    let world_memory: Arc<dyn WorldMemoryManager> = Arc::new(DefaultWorldMemoryManager::new(
-        Arc::clone(&context_object_repo),
-        Arc::clone(&embedder),
-        Arc::clone(&vector_searcher),
-        Arc::clone(&clock),
-        Arc::clone(&id_generator),
-    ));
     let current_user_id = UserId(Uuid::new_v4());
 
     let state = AppState {
         sessions_repo,
         messages_repo,
+        context_object_repo,
         retrivial,
         agent,
-        world_memory,
+        embedder,
+        vector_searcher,
         clock,
         id_generator,
         prompt_assembly,
@@ -121,7 +107,7 @@ async fn main() -> anyhow::Result<()> {
 #[derive(Serialize)]
 struct CreateSessionResponseDto {
     session_id: Uuid,
-    seed: i64,
+    seed: u64,
     created_ts: String,
 }
 
@@ -137,13 +123,13 @@ impl From<CreateSessionResponse> for CreateSessionResponseDto {
 
 async fn create_session_handle(
     State(state): State<AppState>,
-) -> Result<Json<CreateSessionResponseDto>, ApiError> {
+) -> Result<Json<CreateSessionResponseDto>> {
     let use_case = CreateSessionUseCase::new(
         Arc::clone(&state.sessions_repo),
         current_user(state.current_user_id),
         Arc::clone(&state.clock),
         Arc::clone(&state.id_generator),
-        Arc::clone(&state.world_memory),
+        Arc::clone(&state.vector_searcher),
     );
 
     let response = use_case.execute(CreateSessionCommand).await?;
@@ -193,7 +179,7 @@ impl From<GetSessionResponse> for GetSessionResponseDto {
 async fn get_session_handle(
     State(state): State<AppState>,
     Path(session_id_raw): Path<String>,
-) -> Result<Json<GetSessionResponseDto>, ApiError> {
+) -> Result<Json<GetSessionResponseDto>> {
     let session_id = parse_game_session_id(&session_id_raw)?;
     let use_case = GetSessionUseCase::new(
         Arc::clone(&state.sessions_repo),
@@ -226,15 +212,17 @@ impl From<SendMessageResponse> for SendMessageResponseDto {
 async fn send_message_handle(
     State(state): State<AppState>,
     Json(body): Json<SendMessageRequest>,
-) -> Result<Json<SendMessageResponseDto>, ApiError> {
+) -> Result<Json<SendMessageResponseDto>> {
     let use_case = SendMessageUseCase::new(
         Arc::clone(&state.sessions_repo),
         Arc::clone(&state.messages_repo),
+        Arc::clone(&state.context_object_repo),
         current_user(state.current_user_id),
         Arc::clone(&state.prompt_assembly),
         Arc::clone(&state.retrivial),
         Arc::clone(&state.agent),
-        Arc::clone(&state.world_memory),
+        Arc::clone(&state.embedder),
+        Arc::clone(&state.vector_searcher),
         Arc::clone(&state.clock),
         Arc::clone(&state.id_generator),
     );
@@ -249,48 +237,7 @@ async fn send_message_handle(
     Ok(Json(SendMessageResponseDto::from(response)))
 }
 
-fn parse_game_session_id(value: &str) -> Result<GameSessionId, ApiError> {
-    let parsed = Uuid::parse_str(value)
-        .map_err(|_| ApiError::BadRequest(String::from("invalid session_id")))?;
+fn parse_game_session_id(value: &str) -> Result<GameSessionId> {
+    let parsed = Uuid::parse_str(value)?;
     Ok(GameSessionId(parsed))
-}
-
-#[derive(Debug)]
-enum ApiError {
-    App(AppError),
-    BadRequest(String),
-}
-
-impl From<AppError> for ApiError {
-    fn from(value: AppError) -> Self {
-        Self::App(value)
-    }
-}
-
-impl IntoResponse for ApiError {
-    fn into_response(self) -> Response {
-        let (status, error) = match self {
-            ApiError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
-            ApiError::App(error) => {
-                let status = match error {
-                    AppError::NotFound { .. } => StatusCode::NOT_FOUND,
-                    AppError::Unauthenticated { .. } => StatusCode::UNAUTHORIZED,
-                    AppError::Forbidden { .. } => StatusCode::FORBIDDEN,
-                    AppError::Conflict { .. } => StatusCode::CONFLICT,
-                    AppError::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
-                    AppError::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
-                    AppError::Domain(_) => StatusCode::UNPROCESSABLE_ENTITY,
-                };
-
-                (status, error.to_string())
-            }
-        };
-
-        (status, Json(ErrorResponse { error })).into_response()
-    }
-}
-
-#[derive(Serialize)]
-struct ErrorResponse {
-    error: String,
 }

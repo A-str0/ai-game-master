@@ -81,6 +81,36 @@ pub(crate) fn map_diesel_error(error: DieselError, resource: &'static str) -> Pg
     }
 }
 
+pub(crate) trait FromPgRepositoryError: Sized {
+    fn from_pg_repository_error(error: PgRepositoryError) -> Self;
+}
+
+pub(crate) trait PgRepositoryResultExt<T, E> {
+    fn into_repo(self) -> Result<T, E>;
+}
+
+impl<T, E> PgRepositoryResultExt<T, E> for Result<T, PgRepositoryError>
+where
+    E: FromPgRepositoryError,
+{
+    fn into_repo(self) -> Result<T, E> {
+        self.map_err(E::from_pg_repository_error)
+    }
+}
+
+pub(crate) trait DieselResultExt<T, E> {
+    fn into_repo_diesel(self, resource: &'static str) -> Result<T, E>;
+}
+
+impl<T, E> DieselResultExt<T, E> for Result<T, DieselError>
+where
+    E: FromPgRepositoryError,
+{
+    fn into_repo_diesel(self, resource: &'static str) -> Result<T, E> {
+        self.map_err(|error| E::from_pg_repository_error(map_diesel_error(error, resource)))
+    }
+}
+
 #[derive(Clone)]
 pub struct PgDatabase {
     pool: PgPool,

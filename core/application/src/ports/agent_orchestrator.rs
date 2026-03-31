@@ -46,9 +46,11 @@ pub enum AgentOrchestratorResponse {
 
 #[derive(Debug, Error)]
 pub enum AgentOrchestratorError {
-    #[error("agent backend unavailable: {details}")]
+    #[error("AgentOrchestrator backend unavaliable ({details})")]
     Unavailable { details: String },
-    #[error("agent backend returned invalid output: {details}")]
+    #[error("AgentOrchestrator backend received invalid query ({details})")]
+    InvalidQuery { details: String },
+    #[error("AgentOrchestrator backend returned invalid output ({details})")]
     InvalidResponse { details: String },
 }
 

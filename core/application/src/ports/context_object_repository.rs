@@ -6,36 +6,14 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ContextObjectRepositoryError {
-    #[error("{resource} not found: {details}")]
-    NotFound {
-        resource: &'static str,
-        details: String,
-    },
-    #[error("{resource} already exists: {details}")]
-    Conflict {
-        resource: &'static str,
-        details: String,
-    },
-    #[error("context object storage unavailable: {details}")]
+    #[error("ContextObject not found: {details}")]
+    NotFound { details: String },
+    #[error("ContextObject conflict: {details}")]
+    Conflict { details: String },
+    #[error("ContextObjectRepository unavailable: {details}")]
     Unavailable { details: String },
-    #[error("context object storage returned invalid data: {details}")]
+    #[error("ContextObjectRepository returned invalid data: {details}")]
     Internal { details: String },
-}
-
-impl ContextObjectRepositoryError {
-    pub fn not_found(resource: &'static str, details: impl Into<String>) -> Self {
-        Self::NotFound {
-            resource,
-            details: details.into(),
-        }
-    }
-
-    pub fn conflict(resource: &'static str, details: impl Into<String>) -> Self {
-        Self::Conflict {
-            resource,
-            details: details.into(),
-        }
-    }
 }
 
 pub type ContextObjectRepositoryResult<T> = Result<T, ContextObjectRepositoryError>;

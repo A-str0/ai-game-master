@@ -5,10 +5,10 @@ use crate::ports::{PromptContextObject, PromptInput};
 
 #[derive(Debug, Error)]
 pub enum PromptAssemblerError {
-    #[error("prompt assembler unavailable: {details}")]
-    Unavailable { details: String },
-    #[error("prompt assembler received invalid input: {details}")]
-    InvalidInput { details: String },
+    #[error("PromptAssembler unavailable")]
+    Unavailable,
+    #[error("PromptAssembler received invalid input")]
+    InvalidInput,
 }
 
 pub type PromptAssemblerResult<T> = Result<T, PromptAssemblerError>;

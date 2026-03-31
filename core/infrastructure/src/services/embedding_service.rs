@@ -7,6 +7,16 @@ use serde_json::json;
 
 const OPENROUTER_EMBEDDINGS_URL: &str = "https://openrouter.ai/api/v1/embeddings";
 
+trait ReqwestResultExt<T> {
+    fn into_embedder(self) -> EmbedderResult<T>;
+}
+
+impl<T> ReqwestResultExt<T> for Result<T, reqwest::Error> {
+    fn into_embedder(self) -> EmbedderResult<T> {
+        self.map_err(|_| EmbedderError::Unavailable)
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct EmbeddingsResponse {
     data: Vec<EmbeddingItem>,
@@ -42,6 +52,7 @@ impl OpenRouterEmbeddingService {
 
 #[async_trait::async_trait]
 impl Embedder for OpenRouterEmbeddingService {
+    // TODO: handle invalid query
     async fn create_embedding(&self, query: EmbedderQuery) -> EmbedderResult<EmbedderResponse> {
         let response = self
             .client
@@ -55,54 +66,36 @@ impl Embedder for OpenRouterEmbeddingService {
             }))
             .send()
             .await
-            .map_err(|error| EmbedderError::Unavailable {
-                details: format!("openrouter embeddings request failed: {error}"),
-            })?;
+            .into_embedder()?;
 
         let status = response.status();
         if !status.is_success() {
-            let body = response
+            let _ = response // Body
                 .text()
                 .await
                 .unwrap_or_else(|_| String::from("<failed to read response body>"));
 
             let error = match status {
                 StatusCode::UNAUTHORIZED | StatusCode::TOO_MANY_REQUESTS => {
-                    EmbedderError::Unavailable {
-                        details: format!("openrouter embeddings returned status {status}: {body}"),
-                    }
+                    EmbedderError::Unavailable
                 }
-                _ => EmbedderError::InvalidResponse {
-                    details: format!(
-                        "openrouter embeddings returned unexpected status {status}: {body}"
-                    ),
-                },
+                _ => EmbedderError::InvalidResponse,
             };
 
             return Err(error);
         }
 
-        let body: EmbeddingsResponse =
-            response
-                .json()
-                .await
-                .map_err(|error| EmbedderError::InvalidResponse {
-                    details: format!("failed to decode openrouter embeddings response: {error}"),
-                })?;
+        let body: EmbeddingsResponse = response.json().await.into_embedder()?;
 
         let vector = body
             .data
             .into_iter()
             .next()
-            .ok_or(EmbedderError::InvalidResponse {
-                details: String::from("openrouter embeddings response does not contain data[0]"),
-            })?
+            .ok_or(EmbedderError::InvalidResponse)?
             .embedding;
 
         if vector.is_empty() {
-            return Err(EmbedderError::InvalidResponse {
-                details: String::from("openrouter embeddings returned an empty embedding vector"),
-            });
+            return Err(EmbedderError::InvalidResponse);
         }
 
         Ok(EmbedderResponse { vector })

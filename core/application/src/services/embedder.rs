@@ -14,10 +14,12 @@ pub struct EmbedderResponse {
 
 #[derive(Debug, Error)]
 pub enum EmbedderError {
-    #[error("embedding backend unavailable: {details}")]
-    Unavailable { details: String },
-    #[error("embedding backend returned invalid output: {details}")]
-    InvalidResponse { details: String },
+    #[error("Embedder backend unavailable")]
+    Unavailable,
+    #[error("Embedder backend received invalid query")]
+    InvalidQuery,
+    #[error("Embedder backend returned invalid output")]
+    InvalidResponse,
 }
 
 pub type EmbedderResult<T> = Result<T, EmbedderError>;

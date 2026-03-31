@@ -7,7 +7,8 @@ use super::{
     schema::messages::dsl,
 };
 use crate::repositories::postgres::connecion::{
-    PgPool, PgRepositoryError, RESOURCE_MESSAGE, connection, map_diesel_error,
+    DieselResultExt, FromPgRepositoryError, PgPool, PgRepositoryError, PgRepositoryResultExt,
+    RESOURCE_MESSAGE, connection,
 };
 
 #[derive(Clone)]
@@ -21,16 +22,27 @@ impl PgMessageRepository {
     }
 }
 
+impl FromPgRepositoryError for MessageRepositoryError {
+    fn from_pg_repository_error(error: PgRepositoryError) -> Self {
+        match error {
+            PgRepositoryError::NotFound { details, .. } => Self::NotFound { details },
+            PgRepositoryError::Conflict { details, .. } => Self::Conflict { details },
+            PgRepositoryError::Unavailable { details } => Self::Unavailable { details },
+            PgRepositoryError::Internal { details } => Self::Internal { details },
+        }
+    }
+}
+
 #[async_trait::async_trait]
 impl MessageRepository for PgMessageRepository {
     async fn create(&self, message: &Message) -> MessageRepositoryResult<()> {
-        let mut conn = connection(&self.pool).map_err(map_repository_error)?;
+        let mut conn = connection(&self.pool).into_repo()?;
         let row = NewMessageRow::from(message);
 
         diesel::insert_into(dsl::messages)
             .values(&row)
             .execute(&mut conn)
-            .map_err(|error| map_repository_error(map_diesel_error(error, RESOURCE_MESSAGE)))?;
+            .into_repo_diesel(RESOURCE_MESSAGE)?;
 
         Ok(())
     }
@@ -44,7 +56,7 @@ impl MessageRepository for PgMessageRepository {
             return Ok(Vec::new());
         }
 
-        let mut conn = connection(&self.pool).map_err(map_repository_error)?;
+        let mut conn = connection(&self.pool).into_repo()?;
         let rows = dsl::messages
             .filter(dsl::session_id.eq(session_id.0))
             .order((dsl::ts.desc(), dsl::id.desc()))
@@ -54,25 +66,10 @@ impl MessageRepository for PgMessageRepository {
                 })?,
             )
             .load::<MessageRow>(&mut conn)
-            .map_err(|error| map_repository_error(map_diesel_error(error, RESOURCE_MESSAGE)))?;
+            .into_repo_diesel(RESOURCE_MESSAGE)?;
 
         rows.into_iter()
-            .map(|row| row.try_into().map_err(map_repository_error))
+            .map(|row| row.try_into().into_repo())
             .collect()
-    }
-}
-
-fn map_repository_error(error: PgRepositoryError) -> MessageRepositoryError {
-    match error {
-        PgRepositoryError::NotFound { resource, details } => {
-            MessageRepositoryError::NotFound { resource, details }
-        }
-        PgRepositoryError::Conflict { resource, details } => {
-            MessageRepositoryError::Conflict { resource, details }
-        }
-        PgRepositoryError::Unavailable { details } => {
-            MessageRepositoryError::Unavailable { details }
-        }
-        PgRepositoryError::Internal { details } => MessageRepositoryError::Internal { details },
     }
 }

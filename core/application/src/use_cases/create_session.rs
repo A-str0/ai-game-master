@@ -7,56 +7,55 @@ use domain::{
 };
 
 use crate::{
-    AppError,
-    ports::{Clock, CurrentUser, GameSessionRepository, IdGenerator},
-    services::WorldMemoryManager,
-    use_cases::{AppResult, UseCase},
+    ports::{Clock, GameSessionRepository, IdGenerator, UserPort},
+    services::VectorSearcher,
+    use_cases::{UseCase, UseCaseResult},
 };
 
 pub struct CreateSessionCommand;
 
 pub struct CreateSessionResponse {
     pub session_id: GameSessionId,
-    pub seed: i64,
+    pub seed: u64,
     pub created_ts: chrono::DateTime<chrono::Utc>,
 }
 
 pub struct CreateSessionUseCase {
     sessions_repo: Arc<dyn GameSessionRepository>,
-    current_user: Arc<dyn CurrentUser>,
+    current_user: Arc<dyn UserPort>,
     clock: Arc<dyn Clock>,
     id_generator: Arc<dyn IdGenerator>,
-    world_memory: Arc<dyn WorldMemoryManager>,
+    vector_searcher: Arc<dyn VectorSearcher>,
 }
 
 impl CreateSessionUseCase {
     pub fn new(
         sessions_repo: Arc<dyn GameSessionRepository>,
-        current_user: Arc<dyn CurrentUser>,
+        current_user: Arc<dyn UserPort>,
         clock: Arc<dyn Clock>,
         id_generator: Arc<dyn IdGenerator>,
-        world_memory: Arc<dyn WorldMemoryManager>,
+        vector_searcher: Arc<dyn VectorSearcher>,
     ) -> Self {
         Self {
             sessions_repo,
             current_user,
             clock,
             id_generator,
-            world_memory,
+            vector_searcher,
         }
     }
 }
 
 #[async_trait::async_trait]
 impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCase {
-    async fn execute(&self, _command: CreateSessionCommand) -> AppResult<CreateSessionResponse> {
+    async fn execute(
+        &self,
+        _command: CreateSessionCommand,
+    ) -> UseCaseResult<CreateSessionResponse> {
         let current_user_id = self.current_user.current_user_id().await?;
 
         let rng_state = RngState::default();
-        let seed = i64::try_from(rng_state.seed()).map_err(|_| AppError::Internal {
-            component: "CreateSessionUseCase",
-            details: format!("failed to convert rng seed {} to i64", rng_state.seed()),
-        })?;
+        let seed = rng_state.seed();
         let created_ts = self.clock.now().await;
         let session = GameSession::new(
             self.id_generator.next_game_session_id().await,
@@ -65,8 +64,11 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
             rng_state,
             created_ts,
         );
+
         self.sessions_repo.create(&session).await?;
-        self.world_memory.initialize_session(*session.id()).await?;
+        self.vector_searcher
+            .ensure_session_collection(*session.id())
+            .await?;
 
         Ok(CreateSessionResponse {
             session_id: *session.id(),

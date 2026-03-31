@@ -1,4 +1,4 @@
-use application::ports::{CurrentUser, CurrentUserError, CurrentUserResult};
+use application::ports::{UserPort, UserPortError, UserPortResult};
 use domain::value_objects::UserId;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -36,12 +36,8 @@ impl RequestCurrentUser {
 }
 
 #[async_trait::async_trait]
-impl CurrentUser for RequestCurrentUser {
-    async fn current_user_id(&self) -> CurrentUserResult<UserId> {
-        self.context
-            .user_id
-            .ok_or(CurrentUserError::Unauthenticated {
-                details: String::from("request context does not contain an authenticated user"),
-            })
+impl UserPort for RequestCurrentUser {
+    async fn current_user_id(&self) -> UserPortResult<UserId> {
+        self.context.user_id.ok_or(UserPortError::Unauthenticated)
     }
 }
