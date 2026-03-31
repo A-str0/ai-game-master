@@ -7,8 +7,7 @@ use domain::{
 };
 
 use crate::{
-    ports::{Clock, GameSessionRepository, IdGenerator, UserPort},
-    services::VectorSearcher,
+    ports::{Clock, GameSessionRepository, IdGenerator, UserPort, VectorSearcher},
     use_cases::{UseCase, UseCaseResult},
 };
 

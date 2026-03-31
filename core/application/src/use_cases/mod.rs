@@ -4,12 +4,10 @@ mod send_message;
 
 use std::num::TryFromIntError;
 
-use crate::{
-    ports::{
-        AgentOrchestratorError, ContextObjectRepositoryError, GameSessionRepositoryError,
-        MessageRepositoryError, UserPortError,
-    },
-    services::{EmbedderError, PromptAssemblerError, RetrivialServiceError, VectorSearcherError},
+use crate::ports::{
+    AgentOrchestratorError, ContextObjectRepositoryError, EmbedderError,
+    GameSessionRepositoryError, MessageRepositoryError, PromptAssemblerError,
+    RetrivialServiceError, UserPortError, VectorSearcherError,
 };
 use domain::DomainError;
 use thiserror::Error;

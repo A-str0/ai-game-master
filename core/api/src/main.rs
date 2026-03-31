@@ -4,12 +4,10 @@ use anyhow::Context;
 use application::{
     ports::{
         AgentOrchestrator, AgentOrchestratorError, ContextObjectRepository,
-        ContextObjectRepositoryError, GameSessionRepository, GameSessionRepositoryError,
-        MessageRepository, MessageRepositoryError, UserPort, UserPortError,
-    },
-    services::{
-        Embedder, EmbedderError, PromptAssembler, PromptAssemblerError, RetrivialService,
-        RetrivialServiceError, VectorSearcher, VectorSearcherError,
+        ContextObjectRepositoryError, Embedder, EmbedderError, GameSessionRepository,
+        GameSessionRepositoryError, MessageRepository, MessageRepositoryError, PromptAssembler,
+        PromptAssemblerError, RetrivialService, RetrivialServiceError, UserPort, UserPortError,
+        VectorSearcher, VectorSearcherError,
     },
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,

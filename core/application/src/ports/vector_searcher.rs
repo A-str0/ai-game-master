@@ -1,7 +1,7 @@
 use domain::value_objects::{ContextObjectId, GameSessionId};
 use thiserror::Error;
 
-use crate::services::Vector;
+use crate::ports::Vector;
 
 #[derive(Debug, Clone)]
 pub struct VectorSearchQuery {

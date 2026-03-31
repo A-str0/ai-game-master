@@ -1,4 +1,4 @@
-use application::services::{
+use application::ports::{
     RetrivialCandidate, RetrivialObject, RetrivialService, RetrivialServiceResult,
 };
 use domain::{

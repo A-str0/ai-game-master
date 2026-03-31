@@ -1,4 +1,4 @@
-use application::services::{
+use application::ports::{
     VectorSearchQuery, VectorSearchResponseObject, VectorSearcher, VectorSearcherError,
     VectorSearcherResult, VectorUpsertQuery,
 };

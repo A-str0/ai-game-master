@@ -1,6 +1,5 @@
-use application::{
-    ports::{PromptContextObject, PromptInput, PromptMessage},
-    services::{PromptAssembler, PromptAssemblerResult},
+use application::ports::{
+    PromptAssembler, PromptAssemblerResult, PromptContextObject, PromptInput, PromptMessage,
 };
 use domain::{
     Identifiable,

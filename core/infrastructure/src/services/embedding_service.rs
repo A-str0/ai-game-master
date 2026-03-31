@@ -1,4 +1,4 @@
-use application::services::{
+use application::ports::{
     Embedder, EmbedderError, EmbedderQuery, EmbedderResponse, EmbedderResult,
 };
 use reqwest::{Client, StatusCode};
