@@ -1,21 +1,27 @@
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 use application::{
     ports::{
-        AgentOrchestrator, ContextObjectRepository, GameSessionRepository, MessageRepository,
-        UserPort,
+        AgentOrchestrator, AgentOrchestratorError, ContextObjectRepository,
+        ContextObjectRepositoryError, GameSessionRepository, GameSessionRepositoryError,
+        MessageRepository, MessageRepositoryError, UserPort, UserPortError,
     },
-    services::{Embedder, PromptAssembler, RetrivialService, VectorSearcher},
+    services::{
+        Embedder, EmbedderError, PromptAssembler, PromptAssemblerError, RetrivialService,
+        RetrivialServiceError, VectorSearcher, VectorSearcherError,
+    },
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,
         GetSessionCommand, GetSessionResponse, GetSessionUseCase, SendMessageCommand,
-        SendMessageResponse, SendMessageUseCase, UseCase,
+        SendMessageResponse, SendMessageUseCase, UseCase, UseCaseError,
     },
 };
 use axum::{
     Json, Router,
     extract::{Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
     routing::{get, post},
 };
 use domain::value_objects::{GameSessionId, UserId};
@@ -28,6 +34,8 @@ use infrastructure::{
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+type ApiResult<T> = std::result::Result<T, ApiError>;
 
 #[derive(Clone)]
 struct AppState {
@@ -123,7 +131,7 @@ impl From<CreateSessionResponse> for CreateSessionResponseDto {
 
 async fn create_session_handle(
     State(state): State<AppState>,
-) -> Result<Json<CreateSessionResponseDto>> {
+) -> ApiResult<Json<CreateSessionResponseDto>> {
     let use_case = CreateSessionUseCase::new(
         Arc::clone(&state.sessions_repo),
         current_user(state.current_user_id),
@@ -179,7 +187,7 @@ impl From<GetSessionResponse> for GetSessionResponseDto {
 async fn get_session_handle(
     State(state): State<AppState>,
     Path(session_id_raw): Path<String>,
-) -> Result<Json<GetSessionResponseDto>> {
+) -> ApiResult<Json<GetSessionResponseDto>> {
     let session_id = parse_game_session_id(&session_id_raw)?;
     let use_case = GetSessionUseCase::new(
         Arc::clone(&state.sessions_repo),
@@ -212,7 +220,7 @@ impl From<SendMessageResponse> for SendMessageResponseDto {
 async fn send_message_handle(
     State(state): State<AppState>,
     Json(body): Json<SendMessageRequest>,
-) -> Result<Json<SendMessageResponseDto>> {
+) -> ApiResult<Json<SendMessageResponseDto>> {
     let use_case = SendMessageUseCase::new(
         Arc::clone(&state.sessions_repo),
         Arc::clone(&state.messages_repo),
@@ -237,7 +245,124 @@ async fn send_message_handle(
     Ok(Json(SendMessageResponseDto::from(response)))
 }
 
-fn parse_game_session_id(value: &str) -> Result<GameSessionId> {
-    let parsed = Uuid::parse_str(value)?;
+fn parse_game_session_id(value: &str) -> ApiResult<GameSessionId> {
+    let parsed = Uuid::parse_str(value)
+        .map_err(|_| ApiError::BadRequest(String::from("invalid session_id")))?;
     Ok(GameSessionId(parsed))
+}
+
+#[derive(Debug)]
+enum ApiError {
+    UseCase(UseCaseError),
+    BadRequest(String),
+}
+
+impl From<UseCaseError> for ApiError {
+    fn from(value: UseCaseError) -> Self {
+        Self::UseCase(value)
+    }
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        let (status, error) = match self {
+            ApiError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
+            ApiError::UseCase(error) => (status_code_for_use_case_error(&error), error.to_string()),
+        };
+
+        (status, Json(ErrorResponse { error })).into_response()
+    }
+}
+
+#[derive(Serialize)]
+struct ErrorResponse {
+    error: String,
+}
+
+trait HttpStatusCode {
+    fn status_code(&self) -> StatusCode;
+}
+
+macro_rules! status_code_impl {
+    ($type:ty { $($pattern:pat => $status:expr),+ $(,)? }) => {
+        impl HttpStatusCode for $type {
+            fn status_code(&self) -> StatusCode {
+                match self {
+                    $($pattern => $status),+
+                }
+            }
+        }
+    };
+}
+
+status_code_impl!(UserPortError {
+    Self::Unauthenticated => StatusCode::UNAUTHORIZED,
+    Self::Forbidden => StatusCode::FORBIDDEN,
+    Self::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
+});
+
+status_code_impl!(GameSessionRepositoryError {
+    Self::NotFound { .. } => StatusCode::NOT_FOUND,
+    Self::Conflict { .. } => StatusCode::CONFLICT,
+    Self::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
+    Self::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+status_code_impl!(MessageRepositoryError {
+    Self::NotFound { .. } => StatusCode::NOT_FOUND,
+    Self::Conflict { .. } => StatusCode::CONFLICT,
+    Self::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
+    Self::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+status_code_impl!(ContextObjectRepositoryError {
+    Self::NotFound { .. } => StatusCode::NOT_FOUND,
+    Self::Conflict { .. } => StatusCode::CONFLICT,
+    Self::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
+    Self::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+status_code_impl!(AgentOrchestratorError {
+    Self::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
+    Self::InvalidQuery { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+    Self::InvalidResponse { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+status_code_impl!(EmbedderError {
+    Self::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
+    Self::InvalidQuery => StatusCode::INTERNAL_SERVER_ERROR,
+    Self::InvalidResponse => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+status_code_impl!(PromptAssemblerError {
+    Self::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
+    Self::InvalidInput => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+status_code_impl!(RetrivialServiceError {
+    Self::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
+    Self::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+status_code_impl!(VectorSearcherError {
+    Self::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
+    Self::InvalidResponse { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+status_code_impl!(UseCaseError {
+    Self::Domain(_) => StatusCode::UNPROCESSABLE_ENTITY,
+    Self::User(error) => error.status_code(),
+    Self::GameSessionRepository(error) => error.status_code(),
+    Self::MessageRepository(error) => error.status_code(),
+    Self::ContextObjectRepository(error) => error.status_code(),
+    Self::Agent(error) => error.status_code(),
+    Self::Embedder(error) => error.status_code(),
+    Self::PromptAssembler(error) => error.status_code(),
+    Self::Retrivial(error) => error.status_code(),
+    Self::VectorSearcher(error) => error.status_code(),
+    Self::IntegerConversion(_) => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+fn status_code_for_use_case_error(error: &UseCaseError) -> StatusCode {
+    error.status_code()
 }
