@@ -84,7 +84,6 @@ impl ContextObject {
         importance_score: f32,
         provenance: Provenance,
         created_ts: DateTime<Utc>,
-        updated_ts: Option<DateTime<Utc>>,
     ) -> DomainResult<Self> {
         Self::validate(title, short_desc, long_desc, importance_score)?;
         Self::validate_attributes(&attributes)?;
@@ -101,7 +100,7 @@ impl ContextObject {
             importance_score,
             provenance,
             created_ts,
-            updated_ts,
+            updated_ts: None,
         })
     }
 
@@ -109,9 +108,9 @@ impl ContextObject {
         id: ContextObjectId,
         session_id: GameSessionId,
         object_type: ContextObjectType,
-        title: String,
-        short_desc: String,
-        long_desc: Option<String>,
+        title: &str,
+        short_desc: &str,
+        long_desc: Option<&str>,
         attributes: HashMap<String, AttributeValue>,
         place_id: Option<ContextObjectId>,
         importance_score: f32,
@@ -119,13 +118,16 @@ impl ContextObject {
         created_ts: DateTime<Utc>,
         updated_ts: Option<DateTime<Utc>>,
     ) -> DomainResult<Self> {
+        Self::validate(title, short_desc, long_desc, importance_score)?;
+        Self::validate_attributes(&attributes)?;
+
         Ok(Self {
             id,
             session_id,
             object_type,
-            title,
-            short_desc,
-            long_desc,
+            title: title.to_owned(),
+            short_desc: short_desc.to_owned(),
+            long_desc: long_desc.map(str::to_owned),
             attributes,
             place_id,
             importance_score,
@@ -177,6 +179,10 @@ impl ContextObject {
 
     pub fn session_id(&self) -> GameSessionId {
         self.session_id
+    }
+
+    pub fn mark_activity(&mut self, ts: DateTime<Utc>) {
+        self.updated_ts = Some(ts)
     }
 }
 

@@ -7,7 +7,7 @@ pub struct RngState {
 impl Default for RngState {
     fn default() -> Self {
         Self {
-            seed: 1337,
+            seed: 1488,
             counter: 0,
         }
     }
@@ -24,5 +24,9 @@ impl RngState {
 
     pub fn counter(&self) -> u64 {
         self.counter
+    }
+
+    pub fn increase_counter(&mut self) {
+        self.counter += 1;
     }
 }

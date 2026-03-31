@@ -71,7 +71,7 @@ impl UseCase<GetSessionCommand, GetSessionResponse> for GetSessionUseCase {
             retrivial_k: session.config().retrivial_k(),
             memory_budget: session.config().memory_budget(),
             session_mode: GameSessionModeDTO::from(*session.config().session_mode()),
-            last_activity_ts: session.last_activity_ts(),
+            last_activity_ts: session.updated_ts(),
         })
     }
 }

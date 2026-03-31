@@ -127,7 +127,7 @@ impl TryFrom<&GameSession> for NewGameSessionRow {
             })?,
             session_mode: (*session.config().session_mode()).into(),
             created_ts: session.created_ts(),
-            last_activity_ts: session.last_activity_ts(),
+            last_activity_ts: session.updated_ts(),
         })
     }
 }
@@ -148,7 +148,7 @@ impl TryFrom<&GameSession> for GameSessionChangeset {
                 }
             })?,
             session_mode: (*session.config().session_mode()).into(),
-            last_activity_ts: session.last_activity_ts(),
+            last_activity_ts: session.updated_ts(),
         })
     }
 }

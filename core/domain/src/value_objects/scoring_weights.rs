@@ -1,5 +1,6 @@
 use crate::DomainResult;
 
+// TODO: move to config
 const DEFAULT_WEIGHTS_SEMANTIC: f32 = 0.6;
 const DEFAULT_WEIGHTS_RECENCY: f32 = 0.2;
 const DEFAULT_WEIGHTS_IMPORTANCE: f32 = 0.15;
@@ -26,7 +27,7 @@ impl Default for ScoringWeights {
 }
 
 impl ScoringWeights {
-    pub fn new(semantic: f32, recency: f32, importance: f32, proximity: f32) -> DomainResult<Self> {
+    fn validate(semantic: f32, recency: f32, importance: f32, proximity: f32) -> DomainResult<()> {
         for (name, value) in [
             ("semantic", semantic),
             ("recency", recency),
@@ -46,6 +47,12 @@ impl ScoringWeights {
                 "ScoringWeights must sum to 1.0",
             )));
         }
+
+        Ok(())
+    }
+
+    pub fn new(semantic: f32, recency: f32, importance: f32, proximity: f32) -> DomainResult<Self> {
+        Self::validate(semantic, recency, importance, proximity)?;
 
         Ok(Self {
             semantic,

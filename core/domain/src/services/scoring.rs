@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 
 use crate::value_objects::ScoringWeights;
 
+// TODO: move to config
 const DEFAULT_RECENCY_HALFLIFE_DAYS: f32 = 7.0;
 const DEFAULT_SAME_LOCATION_MULTIPLIER: f32 = 1.2;
 const DEFAULT_RELATED_MULTIPLIER: f32 = 1.1;

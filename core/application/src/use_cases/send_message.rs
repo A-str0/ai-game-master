@@ -91,7 +91,6 @@ impl SendMessageUseCase {
             object.importance_score,
             provenance,
             created_ts,
-            Some(created_ts),
         )?;
 
         self.context_object_repo.create(&context_object).await?;

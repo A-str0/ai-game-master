@@ -75,23 +75,25 @@ impl TryFrom<ContextObjectRow> for ContextObject {
     type Error = PgRepositoryError;
 
     fn try_from(row: ContextObjectRow) -> PgRepositoryResult<Self> {
+        let map_invariant = |error| PgRepositoryError::Internal {
+            details: format!("context_object row violates domain invariants: {error}"),
+        };
+
         ContextObject::restore(
             ContextObjectId(row.id),
             GameSessionId(row.session_id),
             row.object_type.into(),
-            row.title,
-            row.short_desc,
-            row.long_desc,
+            &row.title,
+            &row.short_desc,
+            row.long_desc.as_deref(),
             json_to_attributes(row.attributes)?,
             row.place_id.map(ContextObjectId),
             row.importance_score,
-            Provenance::restore(row.created_by, row.seed),
+            Provenance::restore(&row.created_by, row.seed).map_err(map_invariant)?,
             row.created_ts,
             row.updated_ts,
         )
-        .map_err(|error| PgRepositoryError::Internal {
-            details: format!("context_object row violates domain invariants: {error}"),
-        })
+        .map_err(map_invariant)
     }
 }
 

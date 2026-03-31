@@ -24,23 +24,29 @@ impl Default for GameSessionConfig {
 }
 
 impl GameSessionConfig {
+    fn validate(retrivial_k: u8, memory_budget: u32) -> DomainResult<()> {
+        if retrivial_k <= 0 {
+            return Err(crate::DomainError::InvariantViolation(String::from(
+                "GameSessionConfig retrivial_k must be greater than 0",
+            )));
+        }
+
+        if memory_budget <= 0 {
+            return Err(crate::DomainError::InvariantViolation(String::from(
+                "GameSessionConfig memory_budget must be greater than 0",
+            )));
+        }
+
+        Ok(())
+    }
+
     pub fn new(
         retrivial_k: u8,
         memory_budget: u32,
         scoring_weights: ScoringWeights,
         session_mode: GameSessionMode,
     ) -> DomainResult<Self> {
-        if retrivial_k == 0 {
-            return Err(crate::DomainError::InvariantViolation(String::from(
-                "GameSessionConfig retrivial_k must be greater than 0",
-            )));
-        }
-
-        if memory_budget == 0 {
-            return Err(crate::DomainError::InvariantViolation(String::from(
-                "GameSessionConfig memory_budget must be greater than 0",
-            )));
-        }
+        Self::validate(retrivial_k, memory_budget)?;
 
         Ok(Self {
             retrivial_k,
@@ -56,7 +62,14 @@ impl GameSessionConfig {
         scoring_weights: ScoringWeights,
         session_mode: GameSessionMode,
     ) -> DomainResult<Self> {
-        Self::new(retrivial_k, memory_budget, scoring_weights, session_mode)
+        Self::validate(retrivial_k, memory_budget)?;
+
+        Ok(Self {
+            retrivial_k,
+            memory_budget,
+            scoring_weights,
+            session_mode,
+        })
     }
 
     pub fn retrivial_k(&self) -> u8 {

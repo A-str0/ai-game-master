@@ -8,21 +8,31 @@ pub struct Provenance {
 }
 
 impl Provenance {
-    pub fn new(created_by: &str, seed: i64) -> DomainResult<Self> {
+    fn validate(created_by: &str) -> DomainResult<()> {
         if created_by.trim().is_empty() {
             return Err(DomainError::InvariantViolation(String::from(
                 "Provenance must specify who it was created by",
             )));
         }
 
+        Ok(())
+    }
+
+    pub fn new(created_by: &str, seed: i64) -> DomainResult<Self> {
+        Self::validate(created_by)?;
+
         Ok(Self {
-            created_by: String::from(created_by),
+            created_by: created_by.to_owned(),
             seed,
         })
     }
 
-    pub fn restore(created_by: String, seed: i64) -> Self {
-        Self { created_by, seed }
+    pub fn restore(created_by: &str, seed: i64) -> DomainResult<Self> {
+        Self::validate(created_by)?;
+        Ok(Self {
+            created_by: created_by.to_owned(),
+            seed,
+        })
     }
 
     pub fn created_by(&self) -> &str {

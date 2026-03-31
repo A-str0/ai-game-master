@@ -14,7 +14,7 @@ pub struct GameSession {
     config: GameSessionConfig,
     rng_state: RngState,
     created_ts: DateTime<Utc>,
-    last_activity_ts: Option<DateTime<Utc>>,
+    updated_ts: Option<DateTime<Utc>>,
 }
 
 impl GameSession {
@@ -31,7 +31,7 @@ impl GameSession {
             config,
             rng_state,
             created_ts,
-            last_activity_ts: None,
+            updated_ts: None,
         }
     }
 
@@ -41,7 +41,7 @@ impl GameSession {
         config: GameSessionConfig,
         rng_state: RngState,
         created_ts: DateTime<Utc>,
-        last_activity_ts: Option<DateTime<Utc>>,
+        updated_ts: Option<DateTime<Utc>>,
     ) -> Self {
         Self {
             id,
@@ -49,7 +49,7 @@ impl GameSession {
             config,
             rng_state,
             created_ts,
-            last_activity_ts,
+            updated_ts,
         }
     }
 
@@ -65,12 +65,16 @@ impl GameSession {
         self.created_ts
     }
 
-    pub fn last_activity_ts(&self) -> Option<DateTime<Utc>> {
-        self.last_activity_ts
+    pub fn updated_ts(&self) -> Option<DateTime<Utc>> {
+        self.updated_ts
     }
 
     pub fn rng_state(&self) -> RngState {
         self.rng_state
+    }
+
+    pub fn mark_activity(&mut self, ts: DateTime<Utc>) {
+        self.updated_ts = Some(ts);
     }
 }
 
