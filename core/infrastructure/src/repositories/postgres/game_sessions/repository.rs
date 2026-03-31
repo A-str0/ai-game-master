@@ -37,7 +37,7 @@ impl FromPgRepositoryError for GameSessionRepositoryError {
 
 #[async_trait::async_trait]
 impl GameSessionRepository for PgGameSessionRepository {
-    async fn create(&self, session: &GameSession) -> GameSessionRepositoryResult<()> {
+    async fn insert(&self, session: &GameSession) -> GameSessionRepositoryResult<()> {
         let mut conn = connection(&self.pool).into_repo()?;
         let row = NewGameSessionRow::try_from(session).into_repo()?;
 

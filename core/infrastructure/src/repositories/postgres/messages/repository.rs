@@ -35,7 +35,7 @@ impl FromPgRepositoryError for MessageRepositoryError {
 
 #[async_trait::async_trait]
 impl MessageRepository for PgMessageRepository {
-    async fn create(&self, message: &Message) -> MessageRepositoryResult<()> {
+    async fn insert(&self, message: &Message) -> MessageRepositoryResult<()> {
         let mut conn = connection(&self.pool).into_repo()?;
         let row = NewMessageRow::from(message);
 

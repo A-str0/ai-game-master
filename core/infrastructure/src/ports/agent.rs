@@ -275,9 +275,9 @@ impl AgentOrchestrator for DefaultAgentOrchestrator {
         }
 
         if let Some(object) = output.context_object {
-            return Ok(AgentOrchestratorResponse::CreateContextObject {
+            return Ok(AgentOrchestratorResponse::CreateContextObjects {
                 message: output.message,
-                object,
+                objects: vec![object],
             });
         }
 
@@ -295,9 +295,9 @@ impl AgentOrchestrator for DefaultAgentOrchestrator {
         }
 
         if let Some(object) = self.extract_context_object(prompt, &output.message).await? {
-            return Ok(AgentOrchestratorResponse::CreateContextObject {
+            return Ok(AgentOrchestratorResponse::CreateContextObjects {
                 message: output.message,
-                object,
+                objects: vec![object],
             });
         }
 

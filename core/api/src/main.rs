@@ -4,10 +4,13 @@ use anyhow::Context;
 use application::{
     ports::{
         AgentOrchestrator, AgentOrchestratorError, ContextObjectRepository,
-        ContextObjectRepositoryError, Embedder, EmbedderError, GameSessionRepository,
-        GameSessionRepositoryError, MessageRepository, MessageRepositoryError, PromptAssembler,
-        PromptAssemblerError, RetrivialService, RetrivialServiceError, UserPort, UserPortError,
-        VectorSearcher, VectorSearcherError,
+        ContextObjectRepositoryError, GameSessionRepository, GameSessionRepositoryError,
+        MessageRepository, MessageRepositoryError, UserPort, UserPortError, VectorSearcher,
+        VectorSearcherError,
+    },
+    services::{
+        Embedder, EmbedderError, EmbeddingService, PromptAssembler, PromptAssemblerError,
+        PromptAssemblyService, RetrivialService, RetrivialServiceError, RetrivialServicePort,
     },
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,
@@ -28,7 +31,7 @@ use infrastructure::{
         CurrentUserContext, DefaultAgentOrchestrator, RequestCurrentUser, UtcClock, UuidGenerator,
     },
     repositories::connecion::PgDatabase,
-    services::{OpenRouterEmbeddingService, PromptAssembly, QdRetrivialService, QdSearchService},
+    services::QdSearchService,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -40,7 +43,7 @@ struct AppState {
     sessions_repo: Arc<dyn GameSessionRepository>,
     messages_repo: Arc<dyn MessageRepository>,
     context_object_repo: Arc<dyn ContextObjectRepository>,
-    retrivial: Arc<dyn RetrivialService>,
+    retrivial: Arc<dyn RetrivialServicePort>,
     agent: Arc<dyn AgentOrchestrator>,
     embedder: Arc<dyn Embedder>,
     vector_searcher: Arc<dyn VectorSearcher>,
@@ -70,12 +73,12 @@ async fn main() -> anyhow::Result<()> {
     let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
     let context_object_repo: Arc<dyn ContextObjectRepository> =
         Arc::new(database.context_objects());
-    let embedder: Arc<dyn Embedder> = Arc::new(OpenRouterEmbeddingService::new().await?);
+    let embedder: Arc<dyn Embedder> = Arc::new(EmbeddingService::new().await?);
     let vector_searcher: Arc<dyn VectorSearcher> = Arc::new(QdSearchService::new());
-    let retrivial: Arc<dyn RetrivialService> = Arc::new(QdRetrivialService::new());
+    let retrivial: Arc<dyn RetrivialServicePort> = Arc::new(RetrivialService::new());
     let agent: Arc<dyn AgentOrchestrator> = Arc::new(DefaultAgentOrchestrator::new().await?);
     let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(UuidGenerator);
-    let prompt_assembly: Arc<dyn PromptAssembler> = Arc::new(PromptAssembly::new());
+    let prompt_assembly: Arc<dyn PromptAssembler> = Arc::new(PromptAssemblyService::new());
     let current_user_id = UserId(Uuid::new_v4());
 
     let state = AppState {

@@ -41,7 +41,7 @@ impl FromPgRepositoryError for ContextObjectRepositoryError {
 
 #[async_trait::async_trait]
 impl ContextObjectRepository for PgContextObjectRepository {
-    async fn create(&self, context_object: &ContextObject) -> ContextObjectRepositoryResult<()> {
+    async fn insert(&self, context_object: &ContextObject) -> ContextObjectRepositoryResult<()> {
         let mut conn = connection(&self.pool).into_repo()?;
         let row = NewContextObjectRow::from(context_object);
 
