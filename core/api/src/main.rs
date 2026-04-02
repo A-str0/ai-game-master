@@ -9,8 +9,9 @@ use application::{
         VectorSearcherError,
     },
     services::{
-        Embedder, EmbedderError, EmbeddingService, PromptAssembler, PromptAssemblerError,
-        PromptAssemblyService, RetrivialService, RetrivialServiceError, RetrivialServicePort,
+        Clock, Embedder, EmbedderError, EmbeddingService, IdGenerator, PromptAssembler,
+        PromptAssemblerError, PromptAssemblyService, RetrivialService, RetrivialServiceError,
+        RetrivialServicePort, UtcClock, UuidGenerator,
     },
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,
@@ -27,9 +28,7 @@ use axum::{
 };
 use domain::value_objects::{GameSessionId, UserId};
 use infrastructure::{
-    ports::{
-        CurrentUserContext, DefaultAgentOrchestrator, RequestCurrentUser, UtcClock, UuidGenerator,
-    },
+    ports::{CurrentUserContext, DefaultAgentOrchestrator, RequestCurrentUser},
     repositories::connecion::PgDatabase,
     services::QdSearchService,
 };
@@ -47,8 +46,8 @@ struct AppState {
     agent: Arc<dyn AgentOrchestrator>,
     embedder: Arc<dyn Embedder>,
     vector_searcher: Arc<dyn VectorSearcher>,
-    clock: Arc<dyn application::ports::Clock>,
-    id_generator: Arc<dyn application::ports::IdGenerator>,
+    clock: Arc<dyn Clock>,
+    id_generator: Arc<dyn IdGenerator>,
     prompt_assembly: Arc<dyn PromptAssembler>,
     current_user_id: UserId,
 }
@@ -68,7 +67,7 @@ async fn main() -> anyhow::Result<()> {
         format!("failed to initialize postgres database from DATABASE_URL: {database_url}")
     })?;
 
-    let clock: Arc<dyn application::ports::Clock> = Arc::new(UtcClock::new());
+    let clock: Arc<dyn Clock> = Arc::new(UtcClock::new());
     let sessions_repo: Arc<dyn GameSessionRepository> = Arc::new(database.game_sessions());
     let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
     let context_object_repo: Arc<dyn ContextObjectRepository> =
@@ -77,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
     let vector_searcher: Arc<dyn VectorSearcher> = Arc::new(QdSearchService::new());
     let retrivial: Arc<dyn RetrivialServicePort> = Arc::new(RetrivialService::new());
     let agent: Arc<dyn AgentOrchestrator> = Arc::new(DefaultAgentOrchestrator::new().await?);
-    let id_generator: Arc<dyn application::ports::IdGenerator> = Arc::new(UuidGenerator);
+    let id_generator: Arc<dyn IdGenerator> = Arc::new(UuidGenerator);
     let prompt_assembly: Arc<dyn PromptAssembler> = Arc::new(PromptAssemblyService::new());
     let current_user_id = UserId(Uuid::new_v4());
 
