@@ -2,6 +2,7 @@ use application::ports::{
     VectorSearchQuery, VectorSearchResponseObject, VectorSearcher, VectorSearcherError,
     VectorSearcherResult, VectorUpsertQuery,
 };
+use domain::value_objects::ContextObjectId;
 use qdrant_client::{
     Payload, Qdrant, QdrantError,
     qdrant::{
@@ -182,7 +183,7 @@ impl VectorSearcher for QdSearchService {
 
 fn parse_context_object_id(
     point: &qdrant_client::qdrant::ScoredPoint,
-) -> VectorSearcherResult<domain::value_objects::ContextObjectId> {
+) -> VectorSearcherResult<ContextObjectId> {
     parse_uuid_payload_value(point.try_get("context_object_id"))
         .or_else(|| {
             point
@@ -193,7 +194,7 @@ fn parse_context_object_id(
                     _ => None,
                 })
         })
-        .map(domain::value_objects::ContextObjectId)
+        .map(ContextObjectId)
         .ok_or_else(|| VectorSearcherError::InvalidResponse {
             details: format!("qdrant search hit is missing a valid context_object_id: {point:?}"),
         })
@@ -212,23 +213,13 @@ fn qdrant_grpc_url() -> String {
     }
 
     let raw_url = std::env::var("QDRANT_URL")
-        .unwrap_or_else(|_| String::from("http://127.0.0.1:6333"))
+        .unwrap_or_else(|_| String::from("http://127.0.0.1:6334"))
         .trim_end_matches('/')
         .to_owned();
 
-    let Ok(mut parsed_url) = reqwest::Url::parse(&raw_url) else {
+    let Ok(parsed_url) = reqwest::Url::parse(&raw_url) else {
         return raw_url;
     };
-
-    match parsed_url.port() {
-        Some(6333) => {
-            let _ = parsed_url.set_port(Some(6334));
-        }
-        None => {
-            let _ = parsed_url.set_port(Some(6334));
-        }
-        Some(_) => {}
-    }
 
     parsed_url.to_string().trim_end_matches('/').to_owned()
 }
