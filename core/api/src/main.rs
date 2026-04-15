@@ -4,14 +4,13 @@ use anyhow::Context;
 use application::{
     ports::{
         AgentOrchestrator, AgentOrchestratorError, ContextObjectRepository,
-        ContextObjectRepositoryError, GameSessionRepository, GameSessionRepositoryError,
-        MessageRepository, MessageRepositoryError, UserPort, UserPortError, VectorSearcher,
-        VectorSearcherError,
+        ContextObjectRepositoryError, Embedder, EmbedderError, GameSessionRepository,
+        GameSessionRepositoryError, MessageRepository, MessageRepositoryError, UserPort,
+        UserPortError, VectorSearcher, VectorSearcherError,
     },
     services::{
-        Clock, Embedder, EmbedderError, EmbeddingService, IdGenerator, PromptAssembler,
-        PromptAssemblerError, PromptAssemblyService, RetrivialService, RetrivialServiceError,
-        RetrivialServicePort, UtcClock, UuidGenerator,
+        Clock, IdGenerator, PromptAssembler, PromptAssemblerError, PromptAssemblyService,
+        RetrivialService, RetrivialServiceError, RetrivialServicePort, UtcClock, UuidGenerator,
     },
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,
@@ -28,9 +27,11 @@ use axum::{
 };
 use domain::value_objects::{GameSessionId, UserId};
 use infrastructure::{
-    ports::{CurrentUserContext, DefaultAgentOrchestrator, RequestCurrentUser},
+    adapters::{
+        CurrentUserContext, DefaultAgentOrchestrator, EmbeddingAdapter, QdSearchService,
+        RequestCurrentUser,
+    },
     repositories::connecion::PgDatabase,
-    services::QdSearchService,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -72,7 +73,7 @@ async fn main() -> anyhow::Result<()> {
     let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
     let context_object_repo: Arc<dyn ContextObjectRepository> =
         Arc::new(database.context_objects());
-    let embedder: Arc<dyn Embedder> = Arc::new(EmbeddingService::new().await?);
+    let embedder: Arc<dyn Embedder> = Arc::new(EmbeddingAdapter::new().await?);
     let vector_searcher: Arc<dyn VectorSearcher> = Arc::new(QdSearchService::new());
     let retrivial: Arc<dyn RetrivialServicePort> = Arc::new(RetrivialService::new());
     let agent: Arc<dyn AgentOrchestrator> = Arc::new(DefaultAgentOrchestrator::new().await?);
@@ -115,7 +116,7 @@ async fn main() -> anyhow::Result<()> {
 #[derive(Serialize)]
 struct CreateSessionResponseDto {
     session_id: Uuid,
-    seed: u64,
+    seed: i64,
     created_ts: String,
 }
 
@@ -360,7 +361,6 @@ status_code_impl!(UseCaseError {
     Self::PromptAssembler(error) => error.status_code(),
     Self::Retrivial(error) => error.status_code(),
     Self::VectorSearcher(error) => error.status_code(),
-    Self::IntegerConversion(_) => StatusCode::INTERNAL_SERVER_ERROR,
 });
 
 fn status_code_for_use_case_error(error: &UseCaseError) -> StatusCode {

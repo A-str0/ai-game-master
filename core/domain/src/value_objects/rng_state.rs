@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, Copy)]
 pub struct RngState {
-    seed: u64,
+    seed: i64,
     counter: u64,
 }
 
@@ -14,11 +14,11 @@ impl Default for RngState {
 }
 
 impl RngState {
-    pub fn new(seed: u64, counter: u64) -> Self {
+    pub fn new(seed: i64, counter: u64) -> Self {
         Self { seed, counter }
     }
 
-    pub fn seed(&self) -> u64 {
+    pub fn seed(&self) -> i64 {
         self.seed
     }
 

@@ -1,37 +1,11 @@
+use application::ports::{
+    Embedder, EmbedderError, EmbedderQuery, EmbedderResponse, EmbedderResult,
+};
 use reqwest::{Client, StatusCode};
-use serde::Deserialize;
 use serde_json::json;
-use thiserror::Error;
 
 // TODO: move to config
 const OPENROUTER_EMBEDDINGS_URL: &str = "https://openrouter.ai/api/v1/embeddings";
-
-#[derive(Debug, Clone)]
-pub struct EmbedderQuery {
-    pub text: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct EmbedderResponse {
-    pub vector: Vec<f32>,
-}
-
-#[derive(Debug, Error)]
-pub enum EmbedderError {
-    #[error("Embedder backend unavailable")]
-    Unavailable,
-    #[error("Embedder backend received invalid query")]
-    InvalidQuery,
-    #[error("Embedder backend returned invalid output")]
-    InvalidResponse,
-}
-
-pub type EmbedderResult<T> = Result<T, EmbedderError>;
-
-#[async_trait::async_trait]
-pub trait Embedder: Send + Sync {
-    async fn create_embedding(&self, query: EmbedderQuery) -> EmbedderResult<EmbedderResponse>;
-}
 
 trait ReqwestResultExt<T> {
     fn into_embedder(self) -> EmbedderResult<T>;
@@ -43,23 +17,13 @@ impl<T> ReqwestResultExt<T> for Result<T, reqwest::Error> {
     }
 }
 
-#[derive(Debug, Deserialize)]
-struct EmbeddingsResponse {
-    data: Vec<EmbeddingItem>,
-}
-
-#[derive(Debug, Deserialize)]
-struct EmbeddingItem {
-    embedding: Vec<f32>,
-}
-
-pub struct EmbeddingService {
+pub struct EmbeddingAdapter {
     client: Client,
     api_key: String,
     model: String,
 }
 
-impl EmbeddingService {
+impl EmbeddingAdapter {
     pub async fn new() -> Result<Self, reqwest::Error> {
         let client = Client::builder().build()?;
         let api_key = std::env::var("OPENROUTER_API_KEY")
@@ -77,7 +41,7 @@ impl EmbeddingService {
 }
 
 #[async_trait::async_trait]
-impl Embedder for EmbeddingService {
+impl Embedder for EmbeddingAdapter {
     // TODO: handle invalid query
     async fn create_embedding(&self, query: EmbedderQuery) -> EmbedderResult<EmbedderResponse> {
         let response = self
@@ -111,19 +75,13 @@ impl Embedder for EmbeddingService {
             return Err(error);
         }
 
-        let body: EmbeddingsResponse = response.json().await.into_embedder()?;
-
-        let vector = body
-            .data
-            .into_iter()
-            .next()
-            .ok_or(EmbedderError::InvalidResponse)?
-            .embedding;
-
-        if vector.is_empty() {
+        let body: EmbedderResponse = response.json().await.into_embedder()?;
+        if body.vector.is_empty() {
             return Err(EmbedderError::InvalidResponse);
         }
 
-        Ok(EmbedderResponse { vector })
+        Ok(EmbedderResponse {
+            vector: body.vector,
+        })
     }
 }

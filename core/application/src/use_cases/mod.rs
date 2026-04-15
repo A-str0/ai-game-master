@@ -2,14 +2,12 @@ mod create_session;
 mod get_session;
 mod send_message;
 
-use std::num::TryFromIntError;
-
 use crate::{
     ports::{
-        AgentOrchestratorError, ContextObjectRepositoryError, GameSessionRepositoryError,
-        MessageRepositoryError, UserPortError, VectorSearcherError,
+        AgentOrchestratorError, ContextObjectRepositoryError, EmbedderError,
+        GameSessionRepositoryError, MessageRepositoryError, UserPortError, VectorSearcherError,
     },
-    services::{EmbedderError, PromptAssemblerError, RetrivialServiceError},
+    services::{PromptAssemblerError, RetrivialServiceError},
 };
 use domain::DomainError;
 use thiserror::Error;
@@ -40,8 +38,6 @@ pub enum UseCaseError {
     Retrivial(#[from] RetrivialServiceError),
     #[error(transparent)]
     VectorSearcher(#[from] VectorSearcherError),
-    #[error("integer conversion failed")]
-    IntegerConversion(#[from] TryFromIntError),
 }
 
 pub type UseCaseResult<T> = Result<T, UseCaseError>;

@@ -16,7 +16,7 @@ pub struct CreateSessionCommand;
 
 pub struct CreateSessionResponse {
     pub session_id: GameSessionId,
-    pub seed: u64,
+    pub seed: i64,
     pub created_ts: chrono::DateTime<chrono::Utc>,
 }
 

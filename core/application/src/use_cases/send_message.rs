@@ -8,14 +8,12 @@ use domain::{
 
 use crate::{
     ports::{
-        AgentOrchestrator, AgentOrchestratorResponse, ContextObjectRepository,
-        GameSessionRepository, MessageRepository, PromptContextObject, ProposedContextObject,
-        UserPort, UserPortError, VectorSearchQuery, VectorSearcher, VectorUpsertQuery,
+        AgentOrchestrator, AgentOrchestratorResponse, ContextObjectRepository, Embedder,
+        EmbedderQuery, GameSessionRepository, MessageRepository, PromptContextObject,
+        ProposedContextObject, UserPort, UserPortError, VectorSearchQuery, VectorSearcher,
+        VectorUpsertQuery,
     },
-    services::{
-        Clock, Embedder, EmbedderQuery, IdGenerator, PromptAssembler, RetrivialCandidate,
-        RetrivialServicePort,
-    },
+    services::{Clock, IdGenerator, PromptAssembler, RetrivialCandidate, RetrivialServicePort},
     use_cases::{UseCase, UseCaseResult},
 };
 
@@ -77,8 +75,7 @@ impl SendMessageUseCase {
         objects: ProposedContextObject,
         created_ts: chrono::DateTime<chrono::Utc>,
     ) -> UseCaseResult<ContextObject> {
-        let provenance =
-            Provenance::new("narrator_agent", i64::try_from(session.rng_state().seed())?)?;
+        let provenance = Provenance::new("narrator_agent", session.rng_state().seed())?;
         let context_object = ContextObject::new(
             self.id_generator.next_context_object_id().await,
             *session.id(),
