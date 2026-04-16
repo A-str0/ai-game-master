@@ -8,12 +8,14 @@ use domain::{
 
 use crate::{
     ports::{
-        AgentOrchestrator, AgentOrchestratorResponse, ContextObjectRepository, Embedder,
-        EmbedderQuery, GameSessionRepository, MessageRepository, PromptContextObject,
-        ProposedContextObject, UserPort, UserPortError, VectorSearchQuery, VectorSearcher,
-        VectorUpsertQuery,
+        ContextObjectRepository, Embedder, EmbedderQuery, GameSessionRepository, MessageRepository,
+        NarratorContextObject, ProposedContextObject, UserPort, UserPortError, VectorSearchQuery,
+        VectorSearcher, VectorUpsertQuery,
     },
-    services::{Clock, IdGenerator, PromptAssembler, RetrivialCandidate, RetrivialServicePort},
+    services::{
+        AgentOrchestrationService, Clock, IdGenerator, PromptAssembler, RetrivialCandidate,
+        RetrivialServicePort,
+    },
     use_cases::{UseCase, UseCaseResult},
 };
 
@@ -33,7 +35,7 @@ pub struct SendMessageUseCase {
     current_user: Arc<dyn UserPort>,
     prompt_assembly: Arc<dyn PromptAssembler>,
     retrivial: Arc<dyn RetrivialServicePort>,
-    agent: Arc<dyn AgentOrchestrator>,
+    agent_orchestration: Arc<AgentOrchestrationService>,
     embedder: Arc<dyn Embedder>,
     vector_searcher: Arc<dyn VectorSearcher>,
     clock: Arc<dyn Clock>,
@@ -48,7 +50,7 @@ impl SendMessageUseCase {
         current_user: Arc<dyn UserPort>,
         prompt_assembly: Arc<dyn PromptAssembler>,
         retrivial: Arc<dyn RetrivialServicePort>,
-        agent: Arc<dyn AgentOrchestrator>,
+        agent_orchestration: Arc<AgentOrchestrationService>,
         embedder: Arc<dyn Embedder>,
         vector_searcher: Arc<dyn VectorSearcher>,
         clock: Arc<dyn Clock>,
@@ -61,7 +63,7 @@ impl SendMessageUseCase {
             current_user,
             prompt_assembly,
             retrivial,
-            agent,
+            agent_orchestration,
             embedder,
             vector_searcher,
             clock,
@@ -72,20 +74,20 @@ impl SendMessageUseCase {
     async fn create_context_object(
         &self,
         session: &GameSession,
-        objects: ProposedContextObject,
+        object: ProposedContextObject,
         created_ts: chrono::DateTime<chrono::Utc>,
     ) -> UseCaseResult<ContextObject> {
         let provenance = Provenance::new("narrator_agent", session.rng_state().seed())?;
         let context_object = ContextObject::new(
             self.id_generator.next_context_object_id().await,
             *session.id(),
-            objects.object_type,
-            &objects.title,
-            &objects.short_desc,
-            objects.long_desc.as_deref(),
-            objects.attributes,
+            object.object_type,
+            &object.title,
+            &object.short_desc,
+            object.long_desc.as_deref(),
+            object.attributes,
             None,
-            objects.importance_score,
+            object.importance_score,
             provenance,
             created_ts,
         )?;
@@ -179,14 +181,14 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
             .await?;
         let retrivial_candidates = self.retrieve_context_objects(&session, &message).await?;
         let retrivial_now = self.clock.now().await;
-        let retrival_objects = self
+        let retrivial_objects = self
             .retrivial
             .rerank(&session, retrivial_candidates, retrivial_now)
             .await?;
 
-        let prompt_objects = retrival_objects
+        let prompt_objects = retrivial_objects
             .into_iter()
-            .map(|obj| PromptContextObject {
+            .map(|obj| NarratorContextObject {
                 title: obj.context_object.title().to_owned(),
                 summary: obj.context_object.short_desc().to_owned(),
             })
@@ -196,36 +198,21 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
             .prompt_assembly
             .assemble(&session, &recent_messages, &message, &prompt_objects)
             .await?;
-        let agent_response = self.agent.generate(&prompt).await?;
+        let orchestration_response = self.agent_orchestration.generate(prompt).await?;
         let activity_ts = self.clock.now().await;
 
-        match agent_response {
-            AgentOrchestratorResponse::Text(msg) => {
-                let gm_message = Message::new(
-                    self.id_generator.next_message_id().await,
-                    command.session_id,
-                    MessageRole::Gm,
-                    &msg,
-                    activity_ts,
-                )?;
+        let gm_message = Message::new(
+            self.id_generator.next_message_id().await,
+            command.session_id,
+            MessageRole::Gm,
+            &orchestration_response.message,
+            activity_ts,
+        )?;
 
-                self.message_repo.insert(&gm_message).await?;
-            }
-            AgentOrchestratorResponse::CreateContextObjects { message, objects } => {
-                let gm_message = Message::new(
-                    self.id_generator.next_message_id().await,
-                    command.session_id,
-                    MessageRole::Gm,
-                    &message,
-                    activity_ts,
-                )?;
-
-                self.message_repo.insert(&gm_message).await?;
-                for object in objects {
-                    self.create_context_object(&session, object, activity_ts)
-                        .await?;
-                }
-            }
+        self.message_repo.insert(&gm_message).await?;
+        for object in orchestration_response.objects {
+            self.create_context_object(&session, object, activity_ts)
+                .await?;
         }
 
         self.session_repo.update(&session).await?;

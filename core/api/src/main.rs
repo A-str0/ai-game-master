@@ -3,14 +3,15 @@ use std::sync::Arc;
 use anyhow::Context;
 use application::{
     ports::{
-        AgentOrchestrator, AgentOrchestratorError, ContextObjectRepository,
-        ContextObjectRepositoryError, Embedder, EmbedderError, GameSessionRepository,
-        GameSessionRepositoryError, MessageRepository, MessageRepositoryError, UserPort,
-        UserPortError, VectorSearcher, VectorSearcherError,
+        ContextObjectRepository, ContextObjectRepositoryError, Embedder, EmbedderError,
+        GameSessionRepository, GameSessionRepositoryError, MemoryExtractorError,
+        MemoryExtractorPort, MessageRepository, MessageRepositoryError, NarratorError,
+        NarratorPort, UserPort, UserPortError, VectorSearcher, VectorSearcherError,
     },
     services::{
-        Clock, IdGenerator, PromptAssembler, PromptAssemblerError, PromptAssemblyService,
-        RetrivialService, RetrivialServiceError, RetrivialServicePort, UtcClock, UuidGenerator,
+        AgentOrchestrationService, AgentOrchestrationServiceError, Clock, IdGenerator,
+        PromptAssembler, PromptAssemblerError, PromptAssemblyService, RetrivialService,
+        RetrivialServiceError, RetrivialServicePort, UtcClock, UuidGenerator,
     },
     use_cases::{
         CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GameSessionModeDTO,
@@ -28,8 +29,8 @@ use axum::{
 use domain::value_objects::{GameSessionId, UserId};
 use infrastructure::{
     adapters::{
-        CurrentUserContext, DefaultAgentOrchestrator, EmbeddingAdapter, QdSearchService,
-        RequestCurrentUser,
+        CurrentUserContext, EmbeddingAdapter, OpenRouterMemoryExtractorAdapter,
+        OpenRouterNarratorAdapter, QdSearchService, RequestCurrentUser,
     },
     repositories::connecion::PgDatabase,
 };
@@ -44,7 +45,7 @@ struct AppState {
     messages_repo: Arc<dyn MessageRepository>,
     context_object_repo: Arc<dyn ContextObjectRepository>,
     retrivial: Arc<dyn RetrivialServicePort>,
-    agent: Arc<dyn AgentOrchestrator>,
+    agent_orchestration: Arc<AgentOrchestrationService>,
     embedder: Arc<dyn Embedder>,
     vector_searcher: Arc<dyn VectorSearcher>,
     clock: Arc<dyn Clock>,
@@ -76,7 +77,10 @@ async fn main() -> anyhow::Result<()> {
     let embedder: Arc<dyn Embedder> = Arc::new(EmbeddingAdapter::new().await?);
     let vector_searcher: Arc<dyn VectorSearcher> = Arc::new(QdSearchService::new());
     let retrivial: Arc<dyn RetrivialServicePort> = Arc::new(RetrivialService::new());
-    let agent: Arc<dyn AgentOrchestrator> = Arc::new(DefaultAgentOrchestrator::new().await?);
+    let narrator: Arc<dyn NarratorPort> = Arc::new(OpenRouterNarratorAdapter::new().await?);
+    let memory_extractor: Arc<dyn MemoryExtractorPort> =
+        Arc::new(OpenRouterMemoryExtractorAdapter::new().await?);
+    let agent_orchestration = Arc::new(AgentOrchestrationService::new(narrator, memory_extractor));
     let id_generator: Arc<dyn IdGenerator> = Arc::new(UuidGenerator);
     let prompt_assembly: Arc<dyn PromptAssembler> = Arc::new(PromptAssemblyService::new());
     let current_user_id = UserId(Uuid::new_v4());
@@ -86,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
         messages_repo,
         context_object_repo,
         retrivial,
-        agent,
+        agent_orchestration,
         embedder,
         vector_searcher,
         clock,
@@ -229,7 +233,7 @@ async fn send_message_handle(
         current_user(state.current_user_id),
         Arc::clone(&state.prompt_assembly),
         Arc::clone(&state.retrivial),
-        Arc::clone(&state.agent),
+        Arc::clone(&state.agent_orchestration),
         Arc::clone(&state.embedder),
         Arc::clone(&state.vector_searcher),
         Arc::clone(&state.clock),
@@ -323,10 +327,22 @@ status_code_impl!(ContextObjectRepositoryError {
     Self::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
 });
 
-status_code_impl!(AgentOrchestratorError {
+status_code_impl!(NarratorError {
     Self::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
     Self::InvalidQuery { .. } => StatusCode::INTERNAL_SERVER_ERROR,
     Self::InvalidResponse { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+status_code_impl!(MemoryExtractorError {
+    Self::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
+    Self::InvalidQuery { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+    Self::InvalidResponse { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
+status_code_impl!(AgentOrchestrationServiceError {
+    Self::Narrator(error) => error.status_code(),
+    Self::MemoryExtractor(error) => error.status_code(),
+    Self::InvalidData { .. } => StatusCode::INTERNAL_SERVER_ERROR,
 });
 
 status_code_impl!(EmbedderError {
@@ -356,7 +372,7 @@ status_code_impl!(UseCaseError {
     Self::GameSessionRepository(error) => error.status_code(),
     Self::MessageRepository(error) => error.status_code(),
     Self::ContextObjectRepository(error) => error.status_code(),
-    Self::Agent(error) => error.status_code(),
+    Self::AgentOrchestration(error) => error.status_code(),
     Self::Embedder(error) => error.status_code(),
     Self::PromptAssembler(error) => error.status_code(),
     Self::Retrivial(error) => error.status_code(),

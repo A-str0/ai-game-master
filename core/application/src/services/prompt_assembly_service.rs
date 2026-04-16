@@ -4,7 +4,7 @@ use domain::{
 };
 use thiserror::Error;
 
-use crate::ports::{PromptContextObject, PromptInput, PromptMessage};
+use crate::ports::{NarratorContextObject, NarratorMessage, NarratorRequest};
 
 // TODO: move to config
 const SYSTEM_PROMPT: &str = "You are the Game Master for a tabletop fantasy role-playing game. Be vivid, coherent and consistent with earlier world details. Use retrieved context objects below when relevant.";
@@ -27,8 +27,8 @@ pub trait PromptAssembler: Send + Sync {
         session: &GameSession,
         recent_messages: &[Message],
         player_message: &Message,
-        retrieved_objects: &[PromptContextObject],
-    ) -> PromptAssemblerResult<PromptInput>;
+        retrieved_objects: &[NarratorContextObject],
+    ) -> PromptAssemblerResult<NarratorRequest>;
 }
 
 pub struct PromptAssemblyService {}
@@ -46,9 +46,9 @@ impl PromptAssembler for PromptAssemblyService {
         session: &GameSession,
         recent_messages: &[Message],
         player_message: &Message,
-        retrieved_objects: &[PromptContextObject],
-    ) -> PromptAssemblerResult<PromptInput> {
-        Ok(PromptInput {
+        retrieved_objects: &[NarratorContextObject],
+    ) -> PromptAssemblerResult<NarratorRequest> {
+        Ok(NarratorRequest {
             system_prompt: String::from(SYSTEM_PROMPT),
             world_summary: format!(
                 "Session {:?} in {:?} mode.",
@@ -58,8 +58,8 @@ impl PromptAssembler for PromptAssemblyService {
             recent_messages: recent_messages
                 .iter()
                 .rev()
-                .map(|message| PromptMessage {
-                    role: format!("{:?}", message.role()).to_lowercase(),
+                .map(|message| NarratorMessage {
+                    role: message.role(),
                     text: message.text().to_owned(),
                 })
                 .collect(),

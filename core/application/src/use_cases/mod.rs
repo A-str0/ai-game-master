@@ -4,10 +4,10 @@ mod send_message;
 
 use crate::{
     ports::{
-        AgentOrchestratorError, ContextObjectRepositoryError, EmbedderError,
-        GameSessionRepositoryError, MessageRepositoryError, UserPortError, VectorSearcherError,
+        ContextObjectRepositoryError, EmbedderError, GameSessionRepositoryError,
+        MessageRepositoryError, UserPortError, VectorSearcherError,
     },
-    services::{PromptAssemblerError, RetrivialServiceError},
+    services::{AgentOrchestrationServiceError, PromptAssemblerError, RetrivialServiceError},
 };
 use domain::DomainError;
 use thiserror::Error;
@@ -29,7 +29,7 @@ pub enum UseCaseError {
     #[error(transparent)]
     ContextObjectRepository(#[from] ContextObjectRepositoryError),
     #[error(transparent)]
-    Agent(#[from] AgentOrchestratorError),
+    AgentOrchestration(#[from] AgentOrchestrationServiceError),
     #[error(transparent)]
     Embedder(#[from] EmbedderError),
     #[error(transparent)]
