@@ -1,23 +1,44 @@
 use domain::{aggregates::Message, value_objects::GameSessionId};
 use thiserror::Error;
 
+/// Errors returned by [`MessageRepository`].
 #[derive(Debug, Error)]
 pub enum MessageRepositoryError {
+    /// Requested message does not exist.
     #[error("Message not found: {details}")]
-    NotFound { details: String },
+    NotFound {
+        /// Repository-specific error details.
+        details: String,
+    },
+    /// Insert or update would violate repository constraints.
     #[error("Message conflict: {details}")]
-    Conflict { details: String },
+    Conflict {
+        /// Repository-specific error details.
+        details: String,
+    },
+    /// Backing storage is temporarily unavailable.
     #[error("MessageRepository unavailable: {details}")]
-    Unavailable { details: String },
+    Unavailable {
+        /// Repository-specific error details.
+        details: String,
+    },
+    /// Repository returned data that cannot be mapped into the domain model.
     #[error("MessageRepository returned invalid data: {details}")]
-    Internal { details: String },
+    Internal {
+        /// Repository-specific error details.
+        details: String,
+    },
 }
 
+/// Convenient result alias returned by [`MessageRepository`].
 pub type MessageRepositoryResult<T> = Result<T, MessageRepositoryError>;
 
+/// Persistence port for session transcript messages.
 #[async_trait::async_trait]
 pub trait MessageRepository: Send + Sync {
+    /// Persists a newly created message.
     async fn insert(&self, message: &Message) -> MessageRepositoryResult<()>;
+    /// Returns the most recent messages for a session in reverse chronological order.
     async fn list_recent(
         &self,
         session_id: &GameSessionId,

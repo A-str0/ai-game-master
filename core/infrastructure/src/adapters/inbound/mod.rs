@@ -1,3 +1,5 @@
+//! Adapters for external services consumed by the application layer.
+
 mod openrouter_embedding;
 mod qdrant_vector_search;
 

@@ -1,3 +1,5 @@
+//! Concrete service adapters used by the application layer.
+
 mod current_user;
 mod inbound;
 mod outbound;

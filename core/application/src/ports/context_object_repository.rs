@@ -4,27 +4,49 @@ use domain::{
 };
 use thiserror::Error;
 
+/// Errors returned by [`ContextObjectRepository`].
 #[derive(Debug, Error)]
 pub enum ContextObjectRepositoryError {
+    /// Requested object does not exist.
     #[error("ContextObject not found: {details}")]
-    NotFound { details: String },
+    NotFound {
+        /// Repository-specific error details.
+        details: String,
+    },
+    /// Insert or update would violate repository constraints.
     #[error("ContextObject conflict: {details}")]
-    Conflict { details: String },
+    Conflict {
+        /// Repository-specific error details.
+        details: String,
+    },
+    /// Backing storage is temporarily unavailable.
     #[error("ContextObjectRepository unavailable: {details}")]
-    Unavailable { details: String },
+    Unavailable {
+        /// Repository-specific error details.
+        details: String,
+    },
+    /// Repository returned data that cannot be mapped into the domain model.
     #[error("ContextObjectRepository returned invalid data: {details}")]
-    Internal { details: String },
+    Internal {
+        /// Repository-specific error details.
+        details: String,
+    },
 }
 
+/// Convenient result alias returned by [`ContextObjectRepository`].
 pub type ContextObjectRepositoryResult<T> = Result<T, ContextObjectRepositoryError>;
 
+/// Persistence port for durable session context objects.
 #[async_trait::async_trait]
 pub trait ContextObjectRepository: Send + Sync {
+    /// Persists a newly created context object.
     async fn insert(&self, context_object: &ContextObject) -> ContextObjectRepositoryResult<()>;
+    /// Loads a context object by session and identifier.
     async fn get_by_id(
         &self,
         session_id: &GameSessionId,
         id: &ContextObjectId,
     ) -> ContextObjectRepositoryResult<ContextObject>;
+    /// Persists a modified context object.
     async fn update(&self, context_object: &ContextObject) -> ContextObjectRepositoryResult<()>;
 }

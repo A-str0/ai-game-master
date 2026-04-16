@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use crate::repositories::postgres::connecion::{PgRepositoryError, PgRepositoryResult};
 use chrono::{DateTime, Utc};
 use diesel::sql_types::SqlType;
@@ -13,11 +15,15 @@ use uuid::Uuid;
 
 use super::schema::game_sessions;
 
+/// Database enum stored for [`GameSessionMode`].
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, DbEnum, SqlType)]
 #[PgType = "SessionMode"]
 #[DbValueStyle = "PascalCase"]
 pub enum SessionModeDb {
+    /// Solo session mode.
     Solo,
+    /// Multiplayer session mode.
     Multi,
 }
 

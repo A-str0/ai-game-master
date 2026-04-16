@@ -26,12 +26,14 @@ use crate::{
     http::build_router,
 };
 
+/// Runnable Axum server with a bound router configuration.
 pub struct ApiServer {
     bind_addr: String,
     router: Router,
 }
 
 impl ApiServer {
+    /// Binds the configured TCP listener and starts serving HTTP traffic.
     pub async fn serve(self) -> Result<()> {
         let listener = tokio::net::TcpListener::bind(&self.bind_addr)
             .await
@@ -45,6 +47,7 @@ impl ApiServer {
     }
 }
 
+/// Wires the full API stack from environment/configuration-driven dependencies.
 pub async fn bootstrap_api_server(config: ApiConfig) -> Result<ApiServer> {
     let database = PgDatabase::new(&config.database_url).with_context(|| {
         format!(

@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use std::collections::HashMap;
 
 use crate::repositories::postgres::connecion::{PgRepositoryError, PgRepositoryResult};
@@ -17,14 +19,21 @@ use uuid::Uuid;
 
 use super::schema::context_objects;
 
+/// Database enum stored for [`ContextObjectType`].
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, DbEnum, SqlType)]
 #[PgType = "ContextObjectType"]
 #[DbValueStyle = "PascalCase"]
 pub enum ContextObjectTypeDb {
+    /// Non-player character.
     Npc,
+    /// Location or place.
     Place,
+    /// Item or object.
     Item,
+    /// Event or happening.
     Event,
+    /// Free-form note.
     Note,
 }
 

@@ -14,6 +14,7 @@ use super::{
     handlers::{create_session_handle, get_session_handle, send_message_handle},
 };
 
+/// Shared Axum state used by HTTP handlers and extractors.
 #[derive(Clone)]
 pub struct HttpApiState {
     application: Arc<dyn ApiApplicationService>,
@@ -41,6 +42,12 @@ impl FromRef<HttpApiState> for AuthenticationConfig {
     }
 }
 
+/// Builds the HTTP router for the public API surface.
+///
+/// Registered routes:
+/// - `POST /api/sessions`
+/// - `GET /api/sessions/{session_id}`
+/// - `POST /api/messages`
 pub fn build_router(
     application: Arc<dyn ApiApplicationService>,
     default_user_id: UserId,

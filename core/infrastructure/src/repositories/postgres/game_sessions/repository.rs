@@ -13,12 +13,14 @@ use crate::repositories::postgres::connecion::{
     RESOURCE_GAME_SESSION, connection,
 };
 
+/// Postgres implementation of [`GameSessionRepository`].
 #[derive(Clone)]
 pub struct PgGameSessionRepository {
     pool: PgPool,
 }
 
 impl PgGameSessionRepository {
+    /// Creates a repository backed by the supplied Diesel pool.
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }

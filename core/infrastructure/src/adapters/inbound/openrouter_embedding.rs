@@ -17,6 +17,7 @@ impl<T> ReqwestResultExt<T> for Result<T, reqwest::Error> {
     }
 }
 
+/// OpenRouter-backed implementation of the embedding port.
 pub struct EmbeddingAdapter {
     client: Client,
     api_key: String,
@@ -24,6 +25,10 @@ pub struct EmbeddingAdapter {
 }
 
 impl EmbeddingAdapter {
+    /// Creates the adapter using environment-driven API credentials and model configuration.
+    ///
+    /// The adapter reads `OPENROUTER_API_KEY` or `LLM_API_KEY`, and falls back
+    /// to `EMBEDDING_MODEL` for model selection.
     pub async fn new() -> Result<Self, reqwest::Error> {
         let client = Client::builder().build()?;
         let api_key = std::env::var("OPENROUTER_API_KEY")
@@ -42,7 +47,7 @@ impl EmbeddingAdapter {
 
 #[async_trait::async_trait]
 impl Embedder for EmbeddingAdapter {
-    // TODO: handle invalid query
+    /// Calls OpenRouter embeddings and returns the resulting dense vector.
     async fn create_embedding(&self, query: EmbedderQuery) -> EmbedderResult<EmbedderResponse> {
         let response = self
             .client

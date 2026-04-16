@@ -24,6 +24,7 @@ impl<T> QdrantResultExt<T> for Result<T, QdrantError> {
     }
 }
 
+/// Qdrant-backed implementation of the vector search port.
 pub struct QdSearchService {
     client: Option<Qdrant>,
     init_error: Option<String>,
@@ -31,6 +32,10 @@ pub struct QdSearchService {
 }
 
 impl QdSearchService {
+    /// Creates a new Qdrant adapter from environment configuration.
+    ///
+    /// Supported variables are `QDRANT_GRPC_URL` or `QDRANT_URL`,
+    /// `QDRANT_API_KEY`, and `EMBEDDING_DIMENSION`.
     pub fn new() -> Self {
         let grpc_url = qdrant_grpc_url();
         let embedding_size = std::env::var("EMBEDDING_DIMENSION")
@@ -115,6 +120,7 @@ impl QdSearchService {
 
 #[async_trait::async_trait]
 impl VectorSearcher for QdSearchService {
+    /// Ensures that a session-specific Qdrant collection exists.
     async fn ensure_session_collection(
         &self,
         session_id: domain::value_objects::GameSessionId,

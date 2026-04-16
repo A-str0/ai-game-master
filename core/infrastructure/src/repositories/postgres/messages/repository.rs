@@ -11,12 +11,14 @@ use crate::repositories::postgres::connecion::{
     RESOURCE_MESSAGE, connection,
 };
 
+/// Postgres implementation of [`MessageRepository`].
 #[derive(Clone)]
 pub struct PgMessageRepository {
     pool: PgPool,
 }
 
 impl PgMessageRepository {
+    /// Creates a repository backed by the supplied Diesel pool.
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }

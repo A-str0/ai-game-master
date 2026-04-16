@@ -1,3 +1,8 @@
+//! Aggregate roots for the role-playing session domain.
+//!
+//! These types represent the authoritative state persisted by the application
+//! layer.
+
 mod context_object;
 mod game_session;
 mod game_session_config;

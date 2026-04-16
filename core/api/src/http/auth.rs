@@ -9,12 +9,14 @@ use super::error::ApiError;
 
 const USER_ID_HEADER: &str = "x-user-id";
 
+/// Authentication settings used by request extractors.
 #[derive(Debug, Clone, Copy)]
 pub struct AuthenticationConfig {
     default_user_id: UserId,
 }
 
 impl AuthenticationConfig {
+    /// Creates a new authentication config with a fallback user ID.
     pub fn new(default_user_id: UserId) -> Self {
         Self { default_user_id }
     }
@@ -35,8 +37,10 @@ impl AuthenticationConfig {
     }
 }
 
+/// Extracted request user resolved from `x-user-id` or the configured default.
 #[derive(Debug, Clone, Copy)]
 pub struct RequestUser {
+    /// User identifier associated with the request.
     pub user_id: UserId,
 }
 

@@ -1,6 +1,6 @@
 use crate::{DomainError, DomainResult};
 
-/// ValueObject
+/// Metadata describing how a context object was produced.
 #[derive(Debug, Clone)]
 pub struct Provenance {
     created_by: String,
@@ -18,6 +18,7 @@ impl Provenance {
         Ok(())
     }
 
+    /// Creates new provenance metadata.
     pub fn new(created_by: &str, seed: i64) -> DomainResult<Self> {
         Self::validate(created_by)?;
 
@@ -27,6 +28,7 @@ impl Provenance {
         })
     }
 
+    /// Restores provenance metadata from persisted state.
     pub fn restore(created_by: &str, seed: i64) -> DomainResult<Self> {
         Self::validate(created_by)?;
         Ok(Self {
@@ -35,10 +37,12 @@ impl Provenance {
         })
     }
 
+    /// Returns the actor or subsystem that produced the object.
     pub fn created_by(&self) -> &str {
         &self.created_by
     }
 
+    /// Returns the RNG seed associated with the originating turn.
     pub fn seed(&self) -> i64 {
         self.seed
     }

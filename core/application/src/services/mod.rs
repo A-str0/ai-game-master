@@ -1,3 +1,5 @@
+//! Stateless services shared by application use cases.
+
 mod agent_orchestration_service;
 mod clock;
 mod id_generator;

@@ -2,14 +2,24 @@ use anyhow::{Context, Result};
 use domain::value_objects::UserId;
 use uuid::Uuid;
 
+/// Runtime configuration required to start the HTTP API.
 #[derive(Debug, Clone)]
 pub struct ApiConfig {
+    /// Socket address the API should bind to.
     pub bind_addr: String,
+    /// Postgres connection string used by the repositories.
     pub database_url: String,
+    /// Fallback user used when `x-user-id` is not supplied.
     pub default_user_id: UserId,
 }
 
 impl ApiConfig {
+    /// Loads configuration from environment variables.
+    ///
+    /// Supported variables:
+    /// - `API_ADDR`
+    /// - `DATABASE_URL`
+    /// - `API_DEFAULT_USER_ID`
     pub fn from_env() -> Result<Self> {
         let bind_addr = std::env::var("API_ADDR").unwrap_or_else(|_| String::from("0.0.0.0:3000"));
         let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {

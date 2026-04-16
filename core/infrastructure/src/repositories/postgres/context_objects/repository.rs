@@ -17,12 +17,14 @@ use crate::repositories::postgres::connecion::{
     RESOURCE_CONTEXT_OBJECT, connection,
 };
 
+/// Postgres implementation of [`ContextObjectRepository`].
 #[derive(Clone)]
 pub struct PgContextObjectRepository {
     pool: PgPool,
 }
 
 impl PgContextObjectRepository {
+    /// Creates a repository backed by the supplied Diesel pool.
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }

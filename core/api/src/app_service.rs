@@ -18,16 +18,20 @@ use async_trait::async_trait;
 use domain::value_objects::{GameSessionId, UserId};
 use infrastructure::adapters::{CurrentUserContext, RequestCurrentUser};
 
+/// Application-facing service used by HTTP handlers.
 #[async_trait]
 pub trait ApiApplicationService: Send + Sync {
+    /// Creates a new session for the supplied user.
     async fn create_session(&self, user_id: UserId) -> Result<CreateSessionResponse, UseCaseError>;
 
+    /// Returns one session visible to the supplied user.
     async fn get_session(
         &self,
         user_id: UserId,
         session_id: GameSessionId,
     ) -> Result<GetSessionResponse, UseCaseError>;
 
+    /// Processes a player message on behalf of the supplied user.
     async fn send_message(
         &self,
         user_id: UserId,
@@ -35,6 +39,7 @@ pub trait ApiApplicationService: Send + Sync {
     ) -> Result<SendMessageResponse, UseCaseError>;
 }
 
+/// Default API application service that constructs use cases per request.
 #[derive(Clone)]
 pub struct LiveApiApplicationService {
     sessions_repo: Arc<dyn GameSessionRepository>,
@@ -51,6 +56,7 @@ pub struct LiveApiApplicationService {
 
 impl LiveApiApplicationService {
     #[allow(clippy::too_many_arguments)]
+    /// Creates the live application service from concrete repositories and services.
     pub fn new(
         sessions_repo: Arc<dyn GameSessionRepository>,
         messages_repo: Arc<dyn MessageRepository>,

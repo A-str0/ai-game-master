@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use crate::repositories::postgres::connecion::{PgRepositoryError, PgRepositoryResult};
 use chrono::{DateTime, Utc};
 use diesel::sql_types::SqlType;
@@ -12,12 +14,17 @@ use uuid::Uuid;
 
 use super::schema::messages;
 
+/// Database enum stored for [`MessageRole`].
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, DbEnum, SqlType)]
 #[PgType = "MessageRole"]
 #[DbValueStyle = "PascalCase"]
 pub enum MessageRoleDb {
+    /// Message authored by the player.
     Player,
+    /// Message authored by the game master.
     Gm,
+    /// Message authored by internal system logic.
     System,
 }
 

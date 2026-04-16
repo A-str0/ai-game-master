@@ -7,22 +7,31 @@ const DEFAULT_RECENCY_HALFLIFE_DAYS: f32 = 7.0;
 const DEFAULT_SAME_LOCATION_MULTIPLIER: f32 = 1.2;
 const DEFAULT_RELATED_MULTIPLIER: f32 = 1.1;
 
-/// DTO
+/// Input features used to score one retrieval candidate.
 #[derive(Debug, Clone, Copy)]
 pub struct ScoreInput {
+    /// Semantic similarity returned by the vector search backend.
     pub semantic_similarity: f32,
+    /// Domain-level importance assigned to the object when it was created.
     pub importance_score: f32,
+    /// Most recent activity timestamp used to compute recency decay.
     pub last_updated_ts: Option<DateTime<Utc>>,
+    /// Whether the object is in the same location as the active scene.
     pub is_same_location: bool,
+    /// Whether the object is otherwise related to the current turn.
     pub is_related: bool,
 }
 
-/// DTO
+/// Configuration knobs that influence scoring behavior.
 #[derive(Debug, Clone, Copy)]
 pub struct ScoringOptions {
+    /// Reference time used to compute recency decay.
     pub now: DateTime<Utc>,
+    /// Half-life for the recency signal, expressed in days.
     pub recency_halflife_days: f32,
+    /// Multiplier applied when the candidate is in the same location.
     pub same_location_multiplier: f32,
+    /// Multiplier applied when the candidate is otherwise related.
     pub related_multiplier: f32,
 }
 
@@ -37,15 +46,20 @@ impl Default for ScoringOptions {
     }
 }
 
+/// A scored retrieval candidate together with its combined ranking score.
 #[derive(Debug, Clone, Copy)]
 pub struct ScoredInput {
+    /// Original features that were evaluated.
     pub input: ScoreInput,
+    /// Final weighted score used for ordering.
     pub combined_score: f32,
 }
 
+/// Pure service that combines retrieval signals into a single ranking score.
 pub struct ScoringService;
 
 impl ScoringService {
+    /// Computes the final score for one candidate.
     pub fn score(input: &ScoreInput, weights: &ScoringWeights, options: &ScoringOptions) -> f32 {
         let semantic = Self::normalize_unit(input.semantic_similarity);
         let recency = Self::recency_score(input.last_updated_ts, options);
@@ -68,6 +82,7 @@ impl ScoringService {
         combined
     }
 
+    /// Scores and sorts candidates in descending order.
     pub fn score_candidates(
         inputs: &[ScoreInput],
         weights: &ScoringWeights,

@@ -6,7 +6,7 @@ const DEFAULT_WEIGHTS_RECENCY: f32 = 0.2;
 const DEFAULT_WEIGHTS_IMPORTANCE: f32 = 0.15;
 const DEFAULT_WEIGHTS_PROXIMITY: f32 = 0.05;
 
-/// ValueObject
+/// Weights applied by the retrieval scoring model.
 #[derive(Debug, Clone, Copy)]
 pub struct ScoringWeights {
     semantic: f32,
@@ -51,6 +51,9 @@ impl ScoringWeights {
         Ok(())
     }
 
+    /// Creates validated scoring weights.
+    ///
+    /// All values must be finite, between `0.0` and `1.0`, and sum to `1.0`.
     pub fn new(semantic: f32, recency: f32, importance: f32, proximity: f32) -> DomainResult<Self> {
         Self::validate(semantic, recency, importance, proximity)?;
 
@@ -62,18 +65,22 @@ impl ScoringWeights {
         })
     }
 
+    /// Returns the weight assigned to semantic similarity.
     pub fn semantic(&self) -> f32 {
         self.semantic
     }
 
+    /// Returns the weight assigned to recency.
     pub fn recency(&self) -> f32 {
         self.recency
     }
 
+    /// Returns the weight assigned to authored importance.
     pub fn importance(&self) -> f32 {
         self.importance
     }
 
+    /// Returns the weight assigned to physical proximity.
     pub fn proximity(&self) -> f32 {
         self.proximity
     }

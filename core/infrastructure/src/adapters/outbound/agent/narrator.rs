@@ -25,11 +25,13 @@ use super::{
 )]
 struct Narrator;
 
+/// Narrator adapter that runs an OpenRouter-backed ReAct agent.
 pub struct OpenRouterNarratorAdapter {
     narrator_handle: DirectAgentHandle<ReActAgent<Narrator>>,
 }
 
 impl OpenRouterNarratorAdapter {
+    /// Builds the narrator agent using shared LLM configuration from the environment.
     pub async fn new() -> Result<Self, Error> {
         let (api_key, model) = load_llm_config();
         let llm = LLMBuilder::<OpenRouter>::new()

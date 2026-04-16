@@ -25,11 +25,13 @@ use super::{
 )]
 struct MemoryExtractor;
 
+/// Memory extractor adapter that runs an OpenRouter-backed ReAct agent.
 pub struct OpenRouterMemoryExtractorAdapter {
     extractor_handle: DirectAgentHandle<ReActAgent<MemoryExtractor>>,
 }
 
 impl OpenRouterMemoryExtractorAdapter {
+    /// Builds the memory extraction agent using shared LLM configuration from the environment.
     pub async fn new() -> Result<Self, Error> {
         let (api_key, model) = load_llm_config();
         let llm = LLMBuilder::<OpenRouter>::new()

@@ -3,7 +3,7 @@ use crate::{
     value_objects::{GameSessionMode, ScoringWeights},
 };
 
-/// Aggregate Root
+/// Configuration embedded into a session and used by application services.
 #[derive(Debug, Clone, Copy)]
 pub struct GameSessionConfig {
     retrivial_k: u8,
@@ -40,6 +40,7 @@ impl GameSessionConfig {
         Ok(())
     }
 
+    /// Creates a validated session configuration.
     pub fn new(
         retrivial_k: u8,
         memory_budget: u32,
@@ -56,6 +57,7 @@ impl GameSessionConfig {
         })
     }
 
+    /// Restores a session configuration from persisted state.
     pub fn restore(
         retrivial_k: u8,
         memory_budget: u32,
@@ -72,18 +74,22 @@ impl GameSessionConfig {
         })
     }
 
+    /// Returns how many vector-search candidates should be pulled before reranking.
     pub fn retrivial_k(&self) -> u8 {
         self.retrivial_k
     }
 
+    /// Returns the approximate prompt budget reserved for retrieved memory.
     pub fn memory_budget(&self) -> u32 {
         self.memory_budget
     }
 
+    /// Returns the weights used by domain scoring during retrieval.
     pub fn scoring_weights(&self) -> &ScoringWeights {
         &self.scoring_weights
     }
 
+    /// Returns whether the session is configured for solo or multiplayer play.
     pub fn session_mode(&self) -> &GameSessionMode {
         &self.session_mode
     }

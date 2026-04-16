@@ -4,31 +4,47 @@ use domain::{
 };
 use thiserror::Error;
 
+/// Candidate object returned by vector search before reranking.
 #[derive(Debug, Clone)]
 pub struct RetrivialCandidate {
+    /// Domain object loaded from persistent storage.
     pub context_object: ContextObject,
+    /// Raw semantic similarity returned by vector search.
     pub semantic_similarity: f32,
 }
 
+/// Candidate object after domain-specific reranking.
 #[derive(Debug, Clone)]
 pub struct RetrivialObject {
+    /// Domain object loaded from persistent storage.
     pub context_object: ContextObject,
+    /// Raw semantic similarity returned by vector search.
     pub semantic_similarity: f32,
+    /// Final combined score produced by domain scoring.
     pub combined_score: f32,
 }
 
+/// Errors returned by [`RetrivialServicePort`].
 #[derive(Debug, Error)]
 pub enum RetrivialServiceError {
+    /// Reranking service is unavailable.
     #[error("RetrivialService unavailable")]
     Unavailable,
+    /// Service returned invalid or inconsistent data.
     #[error("RetrivialService returned invalid data: {details}")]
-    Internal { details: String },
+    Internal {
+        /// Validation details explaining why the payload was rejected.
+        details: String,
+    },
 }
 
+/// Convenient result alias returned by [`RetrivialServicePort`].
 pub type RetrivialServiceResult<T> = Result<T, RetrivialServiceError>;
 
+/// Service that reranks retrieved context objects using domain scoring.
 #[async_trait::async_trait]
 pub trait RetrivialServicePort: Send + Sync {
+    /// Reranks vector-search candidates for the supplied session.
     async fn rerank(
         &self,
         session: &GameSession,
@@ -37,9 +53,11 @@ pub trait RetrivialServicePort: Send + Sync {
     ) -> RetrivialServiceResult<Vec<RetrivialObject>>;
 }
 
+/// Default reranking service built on top of [`ScoringService`].
 pub struct RetrivialService;
 
 impl RetrivialService {
+    /// Creates a new reranking service.
     pub fn new() -> Self {
         Self
     }

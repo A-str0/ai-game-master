@@ -1,3 +1,8 @@
+//! Secondary ports used by the application layer.
+//!
+//! Each port describes one integration boundary and keeps its DTOs and error
+//! types close to the trait definition.
+
 mod context_object_repository;
 mod embedding_port;
 mod game_session_repository;

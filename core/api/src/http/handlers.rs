@@ -18,6 +18,7 @@ use super::{
     error::{ApiError, ApiResult},
 };
 
+/// Handles `POST /api/sessions`.
 pub async fn create_session_handle(
     State(application): State<Arc<dyn ApiApplicationService>>,
     request_user: RequestUser,
@@ -27,6 +28,7 @@ pub async fn create_session_handle(
     Ok(Json(CreateSessionResponseDto::from(response)))
 }
 
+/// Handles `GET /api/sessions/{session_id}`.
 pub async fn get_session_handle(
     State(application): State<Arc<dyn ApiApplicationService>>,
     request_user: RequestUser,
@@ -40,6 +42,7 @@ pub async fn get_session_handle(
     Ok(Json(GetSessionResponseDto::from(response)))
 }
 
+/// Handles `POST /api/messages`.
 pub async fn send_message_handle(
     State(application): State<Arc<dyn ApiApplicationService>>,
     request_user: RequestUser,

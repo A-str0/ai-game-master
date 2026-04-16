@@ -1,3 +1,5 @@
+//! Postgres mapping and repository for game sessions.
+
 mod models;
 mod repository;
 mod schema;

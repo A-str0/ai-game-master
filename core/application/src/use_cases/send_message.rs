@@ -19,15 +19,25 @@ use crate::{
     use_cases::{UseCase, UseCaseResult},
 };
 
+/// Command that submits a new player message to a session.
 pub struct SendMessageCommand {
+    /// Target session identifier.
     pub session_id: GameSessionId,
+    /// Raw player message text.
     pub text: String,
 }
 
+/// Result returned after the turn has been accepted.
 pub struct SendMessageResponse {
+    /// Identifier of the persisted player message.
     pub player_message_id: MessageId,
 }
 
+/// Main turn-processing use case.
+///
+/// The pipeline persists the player message, retrieves supporting context,
+/// calls narration/extraction agents, stores the GM response, and persists any
+/// newly extracted context objects.
 pub struct SendMessageUseCase {
     session_repo: Arc<dyn GameSessionRepository>,
     message_repo: Arc<dyn MessageRepository>,
@@ -43,6 +53,7 @@ pub struct SendMessageUseCase {
 }
 
 impl SendMessageUseCase {
+    /// Creates the use case with its required dependencies.
     pub fn new(
         session_repo: Arc<dyn GameSessionRepository>,
         message_repo: Arc<dyn MessageRepository>,

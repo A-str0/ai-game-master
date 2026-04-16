@@ -12,14 +12,20 @@ use crate::{
     use_cases::{UseCase, UseCaseResult},
 };
 
+/// Command that requests creation of a new session for the current user.
 pub struct CreateSessionCommand;
 
+/// Result returned after a session has been created and provisioned.
 pub struct CreateSessionResponse {
+    /// Newly created session identifier.
     pub session_id: GameSessionId,
+    /// RNG seed assigned to the session.
     pub seed: i64,
+    /// Session creation timestamp.
     pub created_ts: chrono::DateTime<chrono::Utc>,
 }
 
+/// Use case that provisions a fresh game session for the current user.
 pub struct CreateSessionUseCase {
     sessions_repo: Arc<dyn GameSessionRepository>,
     current_user: Arc<dyn UserPort>,
@@ -29,6 +35,7 @@ pub struct CreateSessionUseCase {
 }
 
 impl CreateSessionUseCase {
+    /// Creates the use case with its required dependencies.
     pub fn new(
         sessions_repo: Arc<dyn GameSessionRepository>,
         current_user: Arc<dyn UserPort>,

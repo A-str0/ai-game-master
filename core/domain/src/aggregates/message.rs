@@ -5,7 +5,7 @@ use crate::{
     value_objects::{GameSessionId, MessageId, MessageRole},
 };
 
-/// Aggregate Root
+/// Aggregate root that captures one canonical in-session message.
 #[derive(Debug)]
 pub struct Message {
     id: MessageId,
@@ -26,6 +26,7 @@ impl Message {
         Ok(())
     }
 
+    /// Creates a new validated message entry.
     pub fn new(
         id: MessageId,
         session_id: GameSessionId,
@@ -44,6 +45,7 @@ impl Message {
         })
     }
 
+    /// Restores a message from persisted state.
     pub fn restore(
         id: MessageId,
         session_id: GameSessionId,
@@ -62,18 +64,22 @@ impl Message {
         })
     }
 
+    /// Returns the session that this message belongs to.
     pub fn session_id(&self) -> &GameSessionId {
         &self.session_id
     }
 
+    /// Returns whether the message came from the player, GM, or system.
     pub fn role(&self) -> MessageRole {
         self.role
     }
 
+    /// Returns the raw message text stored in history.
     pub fn text(&self) -> &str {
         &self.text
     }
 
+    /// Returns when the message was created.
     pub fn ts(&self) -> DateTime<Utc> {
         self.ts
     }

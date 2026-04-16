@@ -1,3 +1,5 @@
+//! OpenRouter agent adapters implemented with `autoagents`.
+
 mod llm_config;
 mod memory_extractor;
 mod models;

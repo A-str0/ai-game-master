@@ -15,15 +15,20 @@ use axum::{
 
 use super::dto::ErrorResponse;
 
+/// Result alias returned by HTTP handlers.
 pub type ApiResult<T> = Result<T, ApiError>;
 
+/// Error type converted into HTTP responses.
 #[derive(Debug)]
 pub enum ApiError {
+    /// Wrapped application-layer error.
     UseCase(UseCaseError),
+    /// Client supplied malformed request data.
     BadRequest(String),
 }
 
 impl ApiError {
+    /// Creates a `400 Bad Request` error with the supplied message.
     pub fn bad_request(message: impl Into<String>) -> Self {
         Self::BadRequest(message.into())
     }

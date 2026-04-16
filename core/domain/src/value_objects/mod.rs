@@ -1,3 +1,8 @@
+//! Value objects shared across aggregates and services.
+//!
+//! These types encapsulate the domain vocabulary and keep small invariants close
+//! to the data they describe.
+
 mod attribute_type;
 mod context_object_type;
 mod game_session_mode;

@@ -9,7 +9,10 @@ use crate::{
     },
 };
 
-/// Aggregate Root
+/// Aggregate root that stores durable world state for a session.
+///
+/// A context object can describe an NPC, place, item, event, or free-form note
+/// that should remain retrievable across turns.
 #[derive(Debug, Clone)]
 pub struct ContextObject {
     id: ContextObjectId,
@@ -72,6 +75,7 @@ impl ContextObject {
         Ok(())
     }
 
+    /// Creates a new context object after validating its content.
     pub fn new(
         id: ContextObjectId,
         session_id: GameSessionId,
@@ -104,6 +108,7 @@ impl ContextObject {
         })
     }
 
+    /// Restores a context object from already persisted state.
     pub fn restore(
         id: ContextObjectId,
         session_id: GameSessionId,
@@ -137,50 +142,62 @@ impl ContextObject {
         })
     }
 
+    /// Returns the domain category of the stored memory.
     pub fn object_type(&self) -> &ContextObjectType {
         &self.object_type
     }
 
+    /// Returns the human-readable name used to refer to this object.
     pub fn title(&self) -> &str {
         &self.title
     }
 
+    /// Returns the compact summary used during retrieval and prompting.
     pub fn short_desc(&self) -> &str {
         &self.short_desc
     }
 
+    /// Returns the extended description, when one was captured.
     pub fn long_desc(&self) -> Option<&String> {
         self.long_desc.as_ref()
     }
 
+    /// Returns free-form structured attributes extracted for the object.
     pub fn attributes(&self) -> &HashMap<String, AttributeValue> {
         &self.attributes
     }
 
+    /// Returns the containing place when this object is anchored to one.
     pub fn place_id(&self) -> Option<&ContextObjectId> {
         self.place_id.as_ref()
     }
 
+    /// Returns the importance score later consumed by retrieval scoring.
     pub fn importance_score(&self) -> f32 {
         self.importance_score
     }
 
+    /// Returns provenance metadata describing where the object came from.
     pub fn provenance(&self) -> &Provenance {
         &self.provenance
     }
 
+    /// Returns when the object was first created.
     pub fn created_ts(&self) -> DateTime<Utc> {
         self.created_ts
     }
 
+    /// Returns the latest activity timestamp, if the object was updated later.
     pub fn updated_ts(&self) -> Option<DateTime<Utc>> {
         self.updated_ts
     }
 
+    /// Returns the session that owns this context object.
     pub fn session_id(&self) -> GameSessionId {
         self.session_id
     }
 
+    /// Updates the activity timestamp used by recency-based retrieval.
     pub fn mark_activity(&mut self, ts: DateTime<Utc>) {
         self.updated_ts = Some(ts)
     }

@@ -8,20 +8,29 @@ use thiserror::Error;
 
 use crate::repositories::{context_objects, game_sessions, messages};
 
+/// Resource label used when mapping repository errors for context objects.
 pub const RESOURCE_CONTEXT_OBJECT: &str = "context_object";
+/// Resource label used when mapping repository errors for game sessions.
 pub const RESOURCE_GAME_SESSION: &str = "game_session";
+/// Resource label used when mapping repository errors for messages.
 pub const RESOURCE_MESSAGE: &str = "message";
+/// Embedded Diesel migrations bundled with this crate.
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
+/// Shared Diesel connection pool type used by Postgres repositories.
 pub type PgPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 type PgPooledConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;
 
+/// Errors returned while initializing the Postgres database facade.
 #[derive(Debug, Error)]
 pub enum PgDatabaseError {
+    /// Connection pool creation failed.
     #[error("failed to build postgres connection pool: {0}")]
     Pool(String),
+    /// A connection could not be acquired to run migrations.
     #[error("failed to get postgres connection for migrations: {0}")]
     Connection(String),
+    /// Embedded migrations failed to apply.
     #[error("failed to run postgres migrations: {0}")]
     Migration(String),
 }
@@ -111,12 +120,14 @@ where
     }
 }
 
+/// Facade that owns the Postgres pool and vends typed repositories.
 #[derive(Clone)]
 pub struct PgDatabase {
     pool: PgPool,
 }
 
 impl PgDatabase {
+    /// Creates a database facade, initializes the pool, and runs pending migrations.
     pub fn new(database_url: &str) -> PgDatabaseResult<Self> {
         let manager = ConnectionManager::<PgConnection>::new(database_url);
         let pool = PgPool::builder()
@@ -132,22 +143,27 @@ impl PgDatabase {
         Ok(Self { pool })
     }
 
+    /// Creates a facade from an existing pool without running migrations.
     pub fn from_pool(pool: PgPool) -> Self {
         Self { pool }
     }
 
+    /// Returns the underlying Diesel connection pool.
     pub fn pool(&self) -> &PgPool {
         &self.pool
     }
 
+    /// Returns a game session repository backed by this database.
     pub fn game_sessions(&self) -> game_sessions::PgGameSessionRepository {
         game_sessions::PgGameSessionRepository::new(self.pool.clone())
     }
 
+    /// Returns a context object repository backed by this database.
     pub fn context_objects(&self) -> context_objects::PgContextObjectRepository {
         context_objects::PgContextObjectRepository::new(self.pool.clone())
     }
 
+    /// Returns a message repository backed by this database.
     pub fn messages(&self) -> messages::PgMessageRepository {
         messages::PgMessageRepository::new(self.pool.clone())
     }
