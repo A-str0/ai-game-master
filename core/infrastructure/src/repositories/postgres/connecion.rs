@@ -6,6 +6,7 @@ use diesel::{
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use thiserror::Error;
 
+use crate::repositories::unit_of_work;
 use crate::repositories::{context_objects, game_sessions, messages};
 
 /// Resource label used when mapping repository errors for context objects.
@@ -19,7 +20,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 /// Shared Diesel connection pool type used by Postgres repositories.
 pub type PgPool = r2d2::Pool<ConnectionManager<PgConnection>>;
-type PgPooledConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;
+pub(crate) type PgPooledConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;
 
 /// Errors returned while initializing the Postgres database facade.
 #[derive(Debug, Error)]
@@ -166,6 +167,11 @@ impl PgDatabase {
     /// Returns a message repository backed by this database.
     pub fn messages(&self) -> messages::PgMessageRepository {
         messages::PgMessageRepository::new(self.pool.clone())
+    }
+
+    /// Returns a unit-of-work factory backed by this database.
+    pub fn unit_of_work(&self) -> unit_of_work::PgUnitOfWorkFactory {
+        unit_of_work::PgUnitOfWorkFactory::new(self.pool.clone())
     }
 }
 

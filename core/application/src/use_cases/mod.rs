@@ -10,7 +10,7 @@ mod send_message;
 use crate::{
     ports::{
         ContextObjectRepositoryError, EmbedderError, GameSessionRepositoryError,
-        MessageRepositoryError, UserPortError, VectorSearcherError,
+        MessageRepositoryError, UnitOfWorkError, UserPortError, VectorSearcherError,
     },
     services::{AgentOrchestrationServiceError, PromptAssemblerError, RetrivialServiceError},
 };
@@ -39,6 +39,9 @@ pub enum UseCaseError {
     /// Context object persistence failed.
     #[error(transparent)]
     ContextObjectRepository(#[from] ContextObjectRepositoryError),
+    /// Transaction management failed.
+    #[error(transparent)]
+    UnitOfWork(#[from] UnitOfWorkError),
     /// Agent orchestration failed.
     #[error(transparent)]
     AgentOrchestration(#[from] AgentOrchestrationServiceError),

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use application::{
     ports::{
-        ContextObjectRepository, Embedder, GameSessionRepository, MessageRepository, UserPort,
-        VectorSearcher,
+        ContextObjectRepository, Embedder, GameSessionRepository, MessageRepository,
+        UnitOfWorkFactory, UserPort, VectorSearcher,
     },
     services::{
         AgentOrchestrationService, Clock, IdGenerator, PromptAssembler, RetrivialServicePort,
@@ -45,6 +45,7 @@ pub struct LiveApiApplicationService {
     sessions_repo: Arc<dyn GameSessionRepository>,
     messages_repo: Arc<dyn MessageRepository>,
     context_object_repo: Arc<dyn ContextObjectRepository>,
+    unit_of_work: Arc<dyn UnitOfWorkFactory>,
     retrivial: Arc<dyn RetrivialServicePort>,
     agent_orchestration: Arc<AgentOrchestrationService>,
     embedder: Arc<dyn Embedder>,
@@ -61,6 +62,7 @@ impl LiveApiApplicationService {
         sessions_repo: Arc<dyn GameSessionRepository>,
         messages_repo: Arc<dyn MessageRepository>,
         context_object_repo: Arc<dyn ContextObjectRepository>,
+        unit_of_work: Arc<dyn UnitOfWorkFactory>,
         retrivial: Arc<dyn RetrivialServicePort>,
         agent_orchestration: Arc<AgentOrchestrationService>,
         embedder: Arc<dyn Embedder>,
@@ -73,6 +75,7 @@ impl LiveApiApplicationService {
             sessions_repo,
             messages_repo,
             context_object_repo,
+            unit_of_work,
             retrivial,
             agent_orchestration,
             embedder,
@@ -94,7 +97,7 @@ impl LiveApiApplicationService {
 impl ApiApplicationService for LiveApiApplicationService {
     async fn create_session(&self, user_id: UserId) -> Result<CreateSessionResponse, UseCaseError> {
         let use_case = CreateSessionUseCase::new(
-            Arc::clone(&self.sessions_repo),
+            Arc::clone(&self.unit_of_work),
             self.current_user_port(user_id),
             Arc::clone(&self.clock),
             Arc::clone(&self.id_generator),
@@ -126,6 +129,7 @@ impl ApiApplicationService for LiveApiApplicationService {
             Arc::clone(&self.sessions_repo),
             Arc::clone(&self.messages_repo),
             Arc::clone(&self.context_object_repo),
+            Arc::clone(&self.unit_of_work),
             self.current_user_port(user_id),
             Arc::clone(&self.prompt_assembly),
             Arc::clone(&self.retrivial),

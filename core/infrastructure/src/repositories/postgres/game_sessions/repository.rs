@@ -1,7 +1,7 @@
 use application::ports::{
     GameSessionRepository, GameSessionRepositoryError, GameSessionRepositoryResult,
 };
-use diesel::{QueryDsl, RunQueryDsl};
+use diesel::{PgConnection, QueryDsl, RunQueryDsl};
 use domain::{Identifiable, aggregates::GameSession, value_objects::GameSessionId};
 
 use super::{
@@ -37,44 +37,65 @@ impl FromPgRepositoryError for GameSessionRepositoryError {
     }
 }
 
+pub(crate) fn insert_game_session_conn(
+    conn: &mut PgConnection,
+    session: &GameSession,
+) -> GameSessionRepositoryResult<()> {
+    let row = NewGameSessionRow::try_from(session).into_repo()?;
+
+    diesel::insert_into(dsl::game_sessions)
+        .values(&row)
+        .execute(conn)
+        .into_repo_diesel(RESOURCE_GAME_SESSION)?;
+
+    Ok(())
+}
+
+pub(crate) fn get_game_session_by_id_conn(
+    conn: &mut PgConnection,
+    id: &GameSessionId,
+) -> GameSessionRepositoryResult<GameSession> {
+    let row = dsl::game_sessions
+        .find(id.0)
+        .first::<GameSessionRow>(conn)
+        .into_repo_diesel(RESOURCE_GAME_SESSION)?;
+
+    row.try_into().into_repo()
+}
+
+pub(crate) fn update_game_session_conn(
+    conn: &mut PgConnection,
+    session: &GameSession,
+) -> GameSessionRepositoryResult<()> {
+    let changes = GameSessionChangeset::try_from(session).into_repo()?;
+    let updated_rows = diesel::update(dsl::game_sessions.find(session.id().0))
+        .set(&changes)
+        .execute(conn)
+        .into_repo_diesel(RESOURCE_GAME_SESSION)?;
+
+    if updated_rows == 0 {
+        return Err(GameSessionRepositoryError::NotFound {
+            details: format!("no rows updated for session {}", session.id().0),
+        });
+    }
+
+    Ok(())
+}
+
 #[async_trait::async_trait]
 impl GameSessionRepository for PgGameSessionRepository {
     async fn insert(&self, session: &GameSession) -> GameSessionRepositoryResult<()> {
         let mut conn = connection(&self.pool).into_repo()?;
-        let row = NewGameSessionRow::try_from(session).into_repo()?;
-
-        diesel::insert_into(dsl::game_sessions)
-            .values(&row)
-            .execute(&mut conn)
-            .into_repo_diesel(RESOURCE_GAME_SESSION)?;
-
-        Ok(())
+        insert_game_session_conn(&mut conn, session)
     }
 
     async fn get_by_id(&self, id: &GameSessionId) -> GameSessionRepositoryResult<GameSession> {
         let mut conn = connection(&self.pool).into_repo()?;
-        let row = dsl::game_sessions
-            .find(id.0)
-            .first::<GameSessionRow>(&mut conn)
-            .into_repo_diesel(RESOURCE_GAME_SESSION)?;
-
-        row.try_into().into_repo()
+        get_game_session_by_id_conn(&mut conn, id)
     }
 
     async fn update(&self, session: &GameSession) -> GameSessionRepositoryResult<()> {
         let mut conn = connection(&self.pool).into_repo()?;
-        let changes = GameSessionChangeset::try_from(session).into_repo()?;
-        let updated_rows = diesel::update(dsl::game_sessions.find(session.id().0))
-            .set(&changes)
-            .execute(&mut conn)
-            .into_repo_diesel(RESOURCE_GAME_SESSION)?;
-
-        if updated_rows == 0 {
-            return Err(GameSessionRepositoryError::NotFound {
-                details: format!("no rows updated for session {}", session.id().0),
-            });
-        }
-
-        Ok(())
+        update_game_session_conn(&mut conn, session)
     }
 }

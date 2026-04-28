@@ -1,8 +1,8 @@
 use application::{
     ports::{
         ContextObjectRepositoryError, EmbedderError, GameSessionRepositoryError,
-        MemoryExtractorError, MessageRepositoryError, NarratorError, UserPortError,
-        VectorSearcherError,
+        MemoryExtractorError, MessageRepositoryError, NarratorError, UnitOfWorkError,
+        UserPortError, VectorSearcherError,
     },
     services::{AgentOrchestrationServiceError, PromptAssemblerError, RetrivialServiceError},
     use_cases::UseCaseError,
@@ -102,6 +102,11 @@ status_code_impl!(ContextObjectRepositoryError {
     Self::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
 });
 
+status_code_impl!(UnitOfWorkError {
+    Self::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
+    Self::Internal { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
 status_code_impl!(NarratorError {
     Self::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
     Self::InvalidQuery { .. } => StatusCode::INTERNAL_SERVER_ERROR,
@@ -147,6 +152,7 @@ status_code_impl!(UseCaseError {
     Self::GameSessionRepository(error) => error.status_code(),
     Self::MessageRepository(error) => error.status_code(),
     Self::ContextObjectRepository(error) => error.status_code(),
+    Self::UnitOfWork(error) => error.status_code(),
     Self::AgentOrchestration(error) => error.status_code(),
     Self::Embedder(error) => error.status_code(),
     Self::PromptAssembler(error) => error.status_code(),

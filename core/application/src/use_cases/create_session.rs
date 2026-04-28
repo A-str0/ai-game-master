@@ -7,7 +7,7 @@ use domain::{
 };
 
 use crate::{
-    ports::{GameSessionRepository, UserPort, VectorSearcher},
+    ports::{UnitOfWorkFactory, UserPort, VectorSearcher},
     services::{Clock, IdGenerator},
     use_cases::{UseCase, UseCaseResult},
 };
@@ -27,7 +27,7 @@ pub struct CreateSessionResponse {
 
 /// Use case that provisions a fresh game session for the current user.
 pub struct CreateSessionUseCase {
-    sessions_repo: Arc<dyn GameSessionRepository>,
+    unit_of_work: Arc<dyn UnitOfWorkFactory>,
     current_user: Arc<dyn UserPort>,
     clock: Arc<dyn Clock>,
     id_generator: Arc<dyn IdGenerator>,
@@ -37,14 +37,14 @@ pub struct CreateSessionUseCase {
 impl CreateSessionUseCase {
     /// Creates the use case with its required dependencies.
     pub fn new(
-        sessions_repo: Arc<dyn GameSessionRepository>,
+        unit_of_work: Arc<dyn UnitOfWorkFactory>,
         current_user: Arc<dyn UserPort>,
         clock: Arc<dyn Clock>,
         id_generator: Arc<dyn IdGenerator>,
         vector_searcher: Arc<dyn VectorSearcher>,
     ) -> Self {
         Self {
-            sessions_repo,
+            unit_of_work,
             current_user,
             clock,
             id_generator,
@@ -72,7 +72,9 @@ impl UseCase<CreateSessionCommand, CreateSessionResponse> for CreateSessionUseCa
             created_ts,
         );
 
-        self.sessions_repo.insert(&session).await?;
+        let mut unit_of_work = self.unit_of_work.begin().await?;
+        unit_of_work.insert_session(&session).await?;
+        unit_of_work.commit().await?;
         self.vector_searcher
             .ensure_session_collection(*session.id())
             .await?;

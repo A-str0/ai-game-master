@@ -9,8 +9,8 @@ use domain::{
 use crate::{
     ports::{
         ContextObjectRepository, Embedder, EmbedderQuery, GameSessionRepository, MessageRepository,
-        NarratorContextObject, ProposedContextObject, UserPort, UserPortError, VectorSearchQuery,
-        VectorSearcher, VectorUpsertQuery,
+        NarratorContextObject, ProposedContextObject, UnitOfWorkFactory, UserPort, UserPortError,
+        VectorSearchQuery, VectorSearcher, VectorUpsertQuery,
     },
     services::{
         AgentOrchestrationService, Clock, IdGenerator, PromptAssembler, RetrivialCandidate,
@@ -42,6 +42,7 @@ pub struct SendMessageUseCase {
     session_repo: Arc<dyn GameSessionRepository>,
     message_repo: Arc<dyn MessageRepository>,
     context_object_repo: Arc<dyn ContextObjectRepository>,
+    unit_of_work: Arc<dyn UnitOfWorkFactory>,
     current_user: Arc<dyn UserPort>,
     prompt_assembly: Arc<dyn PromptAssembler>,
     retrivial: Arc<dyn RetrivialServicePort>,
@@ -58,6 +59,7 @@ impl SendMessageUseCase {
         session_repo: Arc<dyn GameSessionRepository>,
         message_repo: Arc<dyn MessageRepository>,
         context_object_repo: Arc<dyn ContextObjectRepository>,
+        unit_of_work: Arc<dyn UnitOfWorkFactory>,
         current_user: Arc<dyn UserPort>,
         prompt_assembly: Arc<dyn PromptAssembler>,
         retrivial: Arc<dyn RetrivialServicePort>,
@@ -71,6 +73,7 @@ impl SendMessageUseCase {
             session_repo,
             message_repo,
             context_object_repo,
+            unit_of_work,
             current_user,
             prompt_assembly,
             retrivial,
@@ -87,7 +90,7 @@ impl SendMessageUseCase {
         session: &GameSession,
         object: ProposedContextObject,
         created_ts: chrono::DateTime<chrono::Utc>,
-    ) -> UseCaseResult<ContextObject> {
+    ) -> UseCaseResult<(ContextObject, Vec<f32>)> {
         let provenance = Provenance::new("narrator_agent", session.rng_state().seed())?;
         let context_object = ContextObject::new(
             self.id_generator.next_context_object_id().await,
@@ -103,8 +106,6 @@ impl SendMessageUseCase {
             created_ts,
         )?;
 
-        self.context_object_repo.insert(&context_object).await?;
-
         let embedding = self
             .embedder
             .create_embedding(EmbedderQuery {
@@ -117,15 +118,7 @@ impl SendMessageUseCase {
             })
             .await?;
 
-        self.vector_searcher
-            .upsert(VectorUpsertQuery {
-                session_id: *session.id(),
-                context_object_id: *context_object.id(),
-                embedding: embedding.vector,
-            })
-            .await?;
-
-        Ok(context_object)
+        Ok((context_object, embedding.vector))
     }
 
     async fn retrieve_context_objects(
@@ -170,7 +163,7 @@ impl SendMessageUseCase {
 impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
     async fn execute(&self, command: SendMessageCommand) -> UseCaseResult<SendMessageResponse> {
         let current_user_id = self.current_user.current_user_id().await?;
-        let session = self.session_repo.get_by_id(&command.session_id).await?;
+        let mut session = self.session_repo.get_by_id(&command.session_id).await?;
 
         if session.owner_id() != &current_user_id {
             return Err(UserPortError::Forbidden.into());
@@ -184,12 +177,6 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
             self.clock.now().await,
         )?;
 
-        self.message_repo.insert(&message).await?;
-
-        let recent_messages = self
-            .message_repo
-            .list_recent(&command.session_id, 20)
-            .await?;
         let retrivial_candidates = self.retrieve_context_objects(&session, &message).await?;
         let retrivial_now = self.clock.now().await;
         let retrivial_objects = self
@@ -204,6 +191,11 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
                 summary: obj.context_object.short_desc().to_owned(),
             })
             .collect::<Vec<_>>();
+
+        let recent_messages = self
+            .message_repo
+            .list_recent(&command.session_id, 20)
+            .await?;
 
         let prompt = self
             .prompt_assembly
@@ -220,13 +212,30 @@ impl UseCase<SendMessageCommand, SendMessageResponse> for SendMessageUseCase {
             activity_ts,
         )?;
 
-        self.message_repo.insert(&gm_message).await?;
+        let mut context_objects = Vec::with_capacity(orchestration_response.objects.len());
         for object in orchestration_response.objects {
-            self.create_context_object(&session, object, activity_ts)
+            let (context_object, embedding) = self
+                .create_context_object(&session, object, activity_ts)
                 .await?;
+            self.vector_searcher
+                .upsert(VectorUpsertQuery {
+                    session_id: *session.id(),
+                    context_object_id: *context_object.id(),
+                    embedding,
+                })
+                .await?;
+            context_objects.push(context_object);
         }
 
-        self.session_repo.update(&session).await?;
+        session.mark_activity(activity_ts);
+        let mut unit_of_work = self.unit_of_work.begin().await?;
+        unit_of_work.insert_message(&message).await?;
+        unit_of_work.insert_message(&gm_message).await?;
+        for context_object in &context_objects {
+            unit_of_work.insert_context_object(context_object).await?;
+        }
+        unit_of_work.update_session(&session).await?;
+        unit_of_work.commit().await?;
 
         Ok(SendMessageResponse {
             player_message_id: *message.id(),

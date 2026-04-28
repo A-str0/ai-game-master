@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use application::{
     ports::{
         ContextObjectRepository, Embedder, GameSessionRepository, MemoryExtractorPort,
-        MessageRepository, NarratorPort, VectorSearcher,
+        MessageRepository, NarratorPort, UnitOfWorkFactory, VectorSearcher,
     },
     services::{
         AgentOrchestrationService, Clock, IdGenerator, PromptAssembler, PromptAssemblyService,
@@ -61,6 +61,7 @@ pub async fn bootstrap_api_server(config: ApiConfig) -> Result<ApiServer> {
     let messages_repo: Arc<dyn MessageRepository> = Arc::new(database.messages());
     let context_object_repo: Arc<dyn ContextObjectRepository> =
         Arc::new(database.context_objects());
+    let unit_of_work: Arc<dyn UnitOfWorkFactory> = Arc::new(database.unit_of_work());
     let embedder: Arc<dyn Embedder> = Arc::new(EmbeddingAdapter::new().await?);
     let vector_searcher: Arc<dyn VectorSearcher> = Arc::new(QdSearchService::new());
     let retrivial: Arc<dyn RetrivialServicePort> = Arc::new(RetrivialService::new());
@@ -75,6 +76,7 @@ pub async fn bootstrap_api_server(config: ApiConfig) -> Result<ApiServer> {
         sessions_repo,
         messages_repo,
         context_object_repo,
+        unit_of_work,
         retrivial,
         agent_orchestration,
         embedder,
