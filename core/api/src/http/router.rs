@@ -11,7 +11,10 @@ use crate::app_service::ApiApplicationService;
 
 use super::{
     auth::AuthenticationConfig,
-    handlers::{create_session_handle, get_session_handle, send_message_handle},
+    handlers::{
+        create_session_handle, get_message_handle, get_messages_handle, get_session_handle,
+        send_message_handle,
+    },
 };
 
 /// Shared Axum state used by HTTP handlers and extractors.
@@ -47,6 +50,8 @@ impl FromRef<HttpApiState> for AuthenticationConfig {
 /// Registered routes:
 /// - `POST /api/sessions`
 /// - `GET /api/sessions/{session_id}`
+/// - `GET /api/messages`
+/// - `GET /api/messages/{message_id}`
 /// - `POST /api/messages`
 pub fn build_router(
     application: Arc<dyn ApiApplicationService>,
@@ -55,6 +60,10 @@ pub fn build_router(
     Router::new()
         .route("/api/sessions", post(create_session_handle))
         .route("/api/sessions/{session_id}", get(get_session_handle))
-        .route("/api/messages", post(send_message_handle))
+        .route(
+            "/api/messages",
+            get(get_messages_handle).post(send_message_handle),
+        )
+        .route("/api/messages/{message_id}", get(get_message_handle))
         .with_state(HttpApiState::new(application, default_user_id))
 }

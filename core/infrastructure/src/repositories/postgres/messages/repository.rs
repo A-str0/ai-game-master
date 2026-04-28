@@ -1,6 +1,9 @@
 use application::ports::{MessageRepository, MessageRepositoryError, MessageRepositoryResult};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
-use domain::{aggregates::Message, value_objects::GameSessionId};
+use domain::{
+    aggregates::Message,
+    value_objects::{GameSessionId, MessageId},
+};
 
 use super::{
     models::{MessageRow, NewMessageRow},
@@ -74,11 +77,37 @@ pub(crate) fn list_recent_messages_conn(
         .collect()
 }
 
+pub(crate) fn get_message_by_id_conn(
+    conn: &mut PgConnection,
+    id: &MessageId,
+) -> MessageRepositoryResult<Message> {
+    let row = dsl::messages
+        .find(id.0)
+        .first::<MessageRow>(conn)
+        .into_repo_diesel(RESOURCE_MESSAGE)?;
+
+    row.try_into().into_repo()
+}
+
 #[async_trait::async_trait]
 impl MessageRepository for PgMessageRepository {
     async fn insert(&self, message: &Message) -> MessageRepositoryResult<()> {
         let mut conn = connection(&self.pool).into_repo()?;
         insert_message_conn(&mut conn, message)
+    }
+
+    async fn get_by_id(&self, id: &MessageId) -> MessageRepositoryResult<Message> {
+        let mut conn = connection(&self.pool).into_repo()?;
+        get_message_by_id_conn(&mut conn, id)
+    }
+
+    async fn list_by_session(
+        &self,
+        session_id: &GameSessionId,
+        limit: usize,
+    ) -> MessageRepositoryResult<Vec<Message>> {
+        let mut conn = connection(&self.pool).into_repo()?;
+        list_recent_messages_conn(&mut conn, session_id, limit)
     }
 
     async fn list_recent(

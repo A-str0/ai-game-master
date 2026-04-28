@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use application::use_cases::SendMessageCommand;
+use application::use_cases::{GetMessagesCommand, SendMessageCommand};
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
 };
-use domain::value_objects::GameSessionId;
+use domain::value_objects::{GameSessionId, MessageId};
 use uuid::Uuid;
 
 use crate::app_service::ApiApplicationService;
@@ -13,7 +13,8 @@ use crate::app_service::ApiApplicationService;
 use super::{
     auth::RequestUser,
     dto::{
-        CreateSessionResponseDto, GetSessionResponseDto, SendMessageRequest, SendMessageResponseDto,
+        CreateSessionResponseDto, GetMessagesRequest, GetMessagesResponseDto,
+        GetSessionResponseDto, MessageResponseDto, SendMessageRequest, SendMessageResponseDto,
     },
     error::{ApiError, ApiResult},
 };
@@ -42,6 +43,39 @@ pub async fn get_session_handle(
     Ok(Json(GetSessionResponseDto::from(response)))
 }
 
+/// Handles `GET /api/messages`.
+pub async fn get_messages_handle(
+    State(application): State<Arc<dyn ApiApplicationService>>,
+    request_user: RequestUser,
+    Query(query): Query<GetMessagesRequest>,
+) -> ApiResult<Json<GetMessagesResponseDto>> {
+    let response = application
+        .get_messages(
+            request_user.user_id,
+            GetMessagesCommand {
+                session_id: GameSessionId(query.session_id),
+                limit: query.limit.unwrap_or(50),
+            },
+        )
+        .await?;
+
+    Ok(Json(GetMessagesResponseDto::from(response)))
+}
+
+/// Handles `GET /api/messages/{message_id}`.
+pub async fn get_message_handle(
+    State(application): State<Arc<dyn ApiApplicationService>>,
+    request_user: RequestUser,
+    Path(message_id_raw): Path<String>,
+) -> ApiResult<Json<MessageResponseDto>> {
+    let message_id = parse_message_id(&message_id_raw)?;
+    let response = application
+        .get_message(request_user.user_id, message_id)
+        .await?;
+
+    Ok(Json(MessageResponseDto::from(response)))
+}
+
 /// Handles `POST /api/messages`.
 pub async fn send_message_handle(
     State(application): State<Arc<dyn ApiApplicationService>>,
@@ -65,4 +99,10 @@ fn parse_game_session_id(value: &str) -> ApiResult<GameSessionId> {
     let parsed = Uuid::parse_str(value).map_err(|_| ApiError::bad_request("invalid session_id"))?;
 
     Ok(GameSessionId(parsed))
+}
+
+fn parse_message_id(value: &str) -> ApiResult<MessageId> {
+    let parsed = Uuid::parse_str(value).map_err(|_| ApiError::bad_request("invalid message_id"))?;
+
+    Ok(MessageId(parsed))
 }

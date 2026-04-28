@@ -1,4 +1,7 @@
-use domain::{aggregates::Message, value_objects::GameSessionId};
+use domain::{
+    aggregates::Message,
+    value_objects::{GameSessionId, MessageId},
+};
 use thiserror::Error;
 
 /// Errors returned by [`MessageRepository`].
@@ -38,6 +41,14 @@ pub type MessageRepositoryResult<T> = Result<T, MessageRepositoryError>;
 pub trait MessageRepository: Send + Sync {
     /// Persists a newly created message.
     async fn insert(&self, message: &Message) -> MessageRepositoryResult<()>;
+    /// Loads one message by identifier.
+    async fn get_by_id(&self, id: &MessageId) -> MessageRepositoryResult<Message>;
+    /// Returns messages for a session in reverse chronological order.
+    async fn list_by_session(
+        &self,
+        session_id: &GameSessionId,
+        limit: usize,
+    ) -> MessageRepositoryResult<Vec<Message>>;
     /// Returns the most recent messages for a session in reverse chronological order.
     async fn list_recent(
         &self,

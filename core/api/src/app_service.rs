@@ -9,9 +9,10 @@ use application::{
         AgentOrchestrationService, Clock, IdGenerator, PromptAssembler, RetrivialServicePort,
     },
     use_cases::{
-        CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GetSessionCommand,
-        GetSessionResponse, GetSessionUseCase, SendMessageCommand, SendMessageResponse,
-        SendMessageUseCase, UseCase, UseCaseError,
+        CreateSessionCommand, CreateSessionResponse, CreateSessionUseCase, GetMessageCommand,
+        GetMessageResponse, GetMessageUseCase, GetMessagesCommand, GetMessagesResponse,
+        GetMessagesUseCase, GetSessionCommand, GetSessionResponse, GetSessionUseCase,
+        SendMessageCommand, SendMessageResponse, SendMessageUseCase, UseCase, UseCaseError,
     },
 };
 use async_trait::async_trait;
@@ -30,6 +31,20 @@ pub trait ApiApplicationService: Send + Sync {
         user_id: UserId,
         session_id: GameSessionId,
     ) -> Result<GetSessionResponse, UseCaseError>;
+
+    /// Returns one message visible to the supplied user.
+    async fn get_message(
+        &self,
+        user_id: UserId,
+        message_id: domain::value_objects::MessageId,
+    ) -> Result<GetMessageResponse, UseCaseError>;
+
+    /// Returns messages for one visible session.
+    async fn get_messages(
+        &self,
+        user_id: UserId,
+        command: GetMessagesCommand,
+    ) -> Result<GetMessagesResponse, UseCaseError>;
 
     /// Processes a player message on behalf of the supplied user.
     async fn send_message(
@@ -138,6 +153,34 @@ impl ApiApplicationService for LiveApiApplicationService {
             Arc::clone(&self.vector_searcher),
             Arc::clone(&self.clock),
             Arc::clone(&self.id_generator),
+        );
+
+        use_case.execute(command).await
+    }
+
+    async fn get_message(
+        &self,
+        user_id: UserId,
+        message_id: domain::value_objects::MessageId,
+    ) -> Result<GetMessageResponse, UseCaseError> {
+        let use_case = GetMessageUseCase::new(
+            Arc::clone(&self.messages_repo),
+            Arc::clone(&self.sessions_repo),
+            self.current_user_port(user_id),
+        );
+
+        use_case.execute(GetMessageCommand { message_id }).await
+    }
+
+    async fn get_messages(
+        &self,
+        user_id: UserId,
+        command: GetMessagesCommand,
+    ) -> Result<GetMessagesResponse, UseCaseError> {
+        let use_case = GetMessagesUseCase::new(
+            Arc::clone(&self.messages_repo),
+            Arc::clone(&self.sessions_repo),
+            self.current_user_port(user_id),
         );
 
         use_case.execute(command).await

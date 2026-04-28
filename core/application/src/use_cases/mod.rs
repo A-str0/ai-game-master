@@ -4,6 +4,8 @@
 //! driving adapters.
 
 mod create_session;
+mod get_message;
+mod get_messages;
 mod get_session;
 mod send_message;
 
@@ -18,6 +20,8 @@ use domain::DomainError;
 use thiserror::Error;
 
 pub use create_session::*;
+pub use get_message::*;
+pub use get_messages::*;
 pub use get_session::*;
 pub use send_message::*;
 
