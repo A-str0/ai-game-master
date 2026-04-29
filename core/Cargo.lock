@@ -40,10 +40,13 @@ dependencies = [
  "application",
  "async-trait",
  "axum 0.8.8",
+ "base64",
  "chrono",
  "domain",
  "infrastructure",
+ "ring",
  "serde",
+ "serde_json",
  "tokio",
  "uuid",
 ]

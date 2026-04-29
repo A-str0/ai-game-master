@@ -25,6 +25,10 @@ pub enum ApiError {
     UseCase(UseCaseError),
     /// Client supplied malformed request data.
     BadRequest(String),
+    /// Request is missing valid authentication credentials.
+    Unauthorized(String),
+    /// Authentication subsystem is temporarily unavailable.
+    ServiceUnavailable(String),
 }
 
 impl ApiError {
@@ -33,11 +37,23 @@ impl ApiError {
         Self::BadRequest(message.into())
     }
 
+    /// Creates a `401 Unauthorized` error with the supplied message.
+    pub fn unauthorized(message: impl Into<String>) -> Self {
+        Self::Unauthorized(message.into())
+    }
+
+    /// Creates a `503 Service Unavailable` error with the supplied message.
+    pub fn service_unavailable(message: impl Into<String>) -> Self {
+        Self::ServiceUnavailable(message.into())
+    }
+
     #[cfg(test)]
     pub fn message(&self) -> &str {
         match self {
             Self::UseCase(_) => "use_case_error",
             Self::BadRequest(message) => message,
+            Self::Unauthorized(message) => message,
+            Self::ServiceUnavailable(message) => message,
         }
     }
 }
@@ -52,6 +68,8 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, error) = match self {
             ApiError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
+            ApiError::Unauthorized(message) => (StatusCode::UNAUTHORIZED, message),
+            ApiError::ServiceUnavailable(message) => (StatusCode::SERVICE_UNAVAILABLE, message),
             ApiError::UseCase(error) => (status_code_for_use_case_error(&error), error.to_string()),
         };
 

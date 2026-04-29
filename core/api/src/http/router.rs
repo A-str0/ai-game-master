@@ -5,7 +5,6 @@ use axum::{
     extract::FromRef,
     routing::{get, post},
 };
-use domain::value_objects::UserId;
 
 use crate::app_service::ApiApplicationService;
 
@@ -25,10 +24,13 @@ pub struct HttpApiState {
 }
 
 impl HttpApiState {
-    fn new(application: Arc<dyn ApiApplicationService>, default_user_id: UserId) -> Self {
+    fn new(
+        application: Arc<dyn ApiApplicationService>,
+        authentication: AuthenticationConfig,
+    ) -> Self {
         Self {
             application,
-            authentication: AuthenticationConfig::new(default_user_id),
+            authentication,
         }
     }
 }
@@ -41,7 +43,7 @@ impl FromRef<HttpApiState> for Arc<dyn ApiApplicationService> {
 
 impl FromRef<HttpApiState> for AuthenticationConfig {
     fn from_ref(state: &HttpApiState) -> Self {
-        state.authentication
+        state.authentication.clone()
     }
 }
 
@@ -55,7 +57,7 @@ impl FromRef<HttpApiState> for AuthenticationConfig {
 /// - `POST /api/messages`
 pub fn build_router(
     application: Arc<dyn ApiApplicationService>,
-    default_user_id: UserId,
+    authentication: AuthenticationConfig,
 ) -> Router {
     Router::new()
         .route("/api/sessions", post(create_session_handle))
@@ -65,5 +67,5 @@ pub fn build_router(
             get(get_messages_handle).post(send_message_handle),
         )
         .route("/api/messages/{message_id}", get(get_message_handle))
-        .with_state(HttpApiState::new(application, default_user_id))
+        .with_state(HttpApiState::new(application, authentication))
 }

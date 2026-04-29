@@ -44,6 +44,12 @@ services:
     environment:
       API_ADDR: ${API_ADDR}
       DATABASE_URL: ${DATABASE_URL}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
+      JWT_USER_ID_CLAIM: ${JWT_USER_ID_CLAIM:-sub}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-0}
       LLM_API_KEY: ${LLM_API_KEY}
       LLM_MODEL: ${LLM_MODEL}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nvidia/llama-nemotron-embed-vl-1b-v2:free}

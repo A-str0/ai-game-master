@@ -88,6 +88,6 @@ pub async fn bootstrap_api_server(config: ApiConfig) -> Result<ApiServer> {
 
     Ok(ApiServer {
         bind_addr: config.bind_addr.clone(),
-        router: build_router(application, config.default_user_id),
+        router: build_router(application, config.authentication),
     })
 }
