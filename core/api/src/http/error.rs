@@ -1,8 +1,8 @@
 use application::{
     ports::{
-        ContextObjectRepositoryError, EmbedderError, GameSessionRepositoryError,
-        MemoryExtractorError, MessageRepositoryError, NarratorError, UnitOfWorkError,
-        UserPortError, VectorSearcherError,
+        BackstoryGeneratorError, ContextObjectRepositoryError, EmbedderError,
+        GameSessionRepositoryError, MemoryExtractorError, MessageRepositoryError, NarratorError,
+        UnitOfWorkError, UserPortError, VectorSearcherError,
     },
     services::{AgentOrchestrationServiceError, PromptAssemblerError, RetrivialServiceError},
     use_cases::UseCaseError,
@@ -137,9 +137,16 @@ status_code_impl!(MemoryExtractorError {
     Self::InvalidResponse { .. } => StatusCode::INTERNAL_SERVER_ERROR,
 });
 
+status_code_impl!(BackstoryGeneratorError {
+    Self::Unavailable { .. } => StatusCode::SERVICE_UNAVAILABLE,
+    Self::InvalidQuery { .. } => StatusCode::BAD_REQUEST,
+    Self::InvalidResponse { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+});
+
 status_code_impl!(AgentOrchestrationServiceError {
     Self::Narrator(error) => error.status_code(),
     Self::MemoryExtractor(error) => error.status_code(),
+    Self::BackstoryGenerator(error) => error.status_code(),
     Self::InvalidData { .. } => StatusCode::INTERNAL_SERVER_ERROR,
 });
 

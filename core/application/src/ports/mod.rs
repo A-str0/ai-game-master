@@ -3,6 +3,7 @@
 //! Each port describes one integration boundary and keeps its DTOs and error
 //! types close to the trait definition.
 
+mod backstory_generator_port;
 mod context_object_repository;
 mod embedding_port;
 mod game_session_repository;
@@ -13,6 +14,7 @@ mod unit_of_work;
 mod user_port;
 mod vector_search_port;
 
+pub use backstory_generator_port::*;
 pub use context_object_repository::*;
 pub use embedding_port::*;
 pub use game_session_repository::*;

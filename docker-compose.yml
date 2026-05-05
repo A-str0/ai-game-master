@@ -55,6 +55,13 @@ services:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nvidia/llama-nemotron-embed-vl-1b-v2:free}
       EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-256}
       QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      BACKSTORY_LLM_BASE_URL: ${BACKSTORY_LLM_BASE_URL:-http://host.docker.internal:8000/v1}
+      BACKSTORY_LLM_API_KEY: ${BACKSTORY_LLM_API_KEY:-}
+      BACKSTORY_LLM_MODEL: ${BACKSTORY_LLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      BACKSTORY_LLM_TEMPERATURE: ${BACKSTORY_LLM_TEMPERATURE:-0.9}
+      BACKSTORY_LLM_MAX_TOKENS: ${BACKSTORY_LLM_MAX_TOKENS:-450}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${API_PORT}:3000"
 

@@ -1,5 +1,6 @@
 use application::ports::{
-    MemoryExtractorRequest, NarratorContextObject, NarratorMessage, NarratorRequest,
+    BackstoryGenerationRequest, MemoryExtractorRequest, NarratorContextObject, NarratorMessage,
+    NarratorRequest,
 };
 use domain::value_objects::MessageRole;
 
@@ -13,6 +14,8 @@ If the exchange introduces a durable world fact that should be remembered later,
 If the player explicitly asks to remember someone or something, you must call `create_context_object`.
 When a named NPC, place, item, event, or long-term note first becomes relevant, prefer creating a context object instead of skipping it.
 Only use the tool for persistent NPCs, places, items, events, or notes. Do not use it for transient narration or repeated facts.
+When you create an `Npc` context object and the scene establishes who that character is, use `long_desc` for a concise backstory or biography with stable details that may matter later.
+Prefer putting biography, allegiances, origin, motives, reputation, and defining past events into `long_desc` rather than bloating `short_desc`.
 Your final answer must contain only the player-facing GM response in the structured `message` field.
 
 World summary:
@@ -61,6 +64,48 @@ Retrieved objects:
         player_action = request.player_action,
         narrator_message = request.narrator_message,
         retrieved_objects = format_retrieved_objects(&request.retrieved_objects),
+    )
+}
+
+pub(super) fn build_backstory_task(request: &BackstoryGenerationRequest) -> String {
+    format!(
+        "Generate a concise NPC backstory for a context object that the narrator has already decided to persist.
+Return only the final backstory text for the context object's long_desc field.
+Do not add headings, bullet lists, JSON, or meta commentary.
+Preserve all established facts. You may infer restrained connective details only when they fit the turn context.
+Focus on stable details useful for future retrieval: origin, reputation, allegiances, motives, defining past events, secrets, and current stakes.
+
+World summary:
+{world_summary}
+
+Recent conversation:
+{recent_messages}
+
+Retrieved objects:
+{retrieved_objects}
+
+Player action:
+{player_action}
+
+Narrator response:
+{narrator_message}
+
+NPC context object:
+Title: {title}
+Short description: {short_desc}
+Existing long description: {long_desc}",
+        world_summary = request.world_summary,
+        recent_messages = format_recent_messages(&request.recent_messages),
+        retrieved_objects = format_retrieved_objects(&request.retrieved_objects),
+        player_action = request.player_action,
+        narrator_message = request.narrator_message,
+        title = request.context_object.title,
+        short_desc = request.context_object.short_desc,
+        long_desc = request
+            .context_object
+            .long_desc
+            .as_deref()
+            .unwrap_or("not supplied"),
     )
 }
 

@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
+use domain::value_objects::ContextObjectType;
 use thiserror::Error;
 
 use crate::ports::{
+    BackstoryGenerationRequest, BackstoryGeneratorError, BackstoryGeneratorPort,
     MemoryExtractorError, MemoryExtractorPort, MemoryExtractorRequest, NarratorError, NarratorPort,
     NarratorRequest, ProposedContextObject,
 };
@@ -25,6 +27,9 @@ pub enum AgentOrchestrationServiceError {
     /// Memory extraction step failed.
     #[error(transparent)]
     MemoryExtractor(#[from] MemoryExtractorError),
+    /// NPC backstory generation failed.
+    #[error(transparent)]
+    BackstoryGenerator(#[from] BackstoryGeneratorError),
     /// Upstream agent returned structurally invalid data.
     #[error("AgentOrchestrationService returned invalid data ({details})")]
     InvalidData {
@@ -40,6 +45,7 @@ pub type AgentOrchestrationServiceResult<T> = Result<T, AgentOrchestrationServic
 pub struct AgentOrchestrationService {
     narrator: Arc<dyn NarratorPort>,
     memory_extractor: Arc<dyn MemoryExtractorPort>,
+    backstory_generator: Arc<dyn BackstoryGeneratorPort>,
 }
 
 impl AgentOrchestrationService {
@@ -47,11 +53,39 @@ impl AgentOrchestrationService {
     pub fn new(
         narrator: Arc<dyn NarratorPort>,
         memory_extractor: Arc<dyn MemoryExtractorPort>,
+        backstory_generator: Arc<dyn BackstoryGeneratorPort>,
     ) -> Self {
         Self {
             narrator,
             memory_extractor,
+            backstory_generator,
         }
+    }
+
+    async fn enrich_narrator_context_object(
+        &self,
+        request: &NarratorRequest,
+        narrator_message: &str,
+        mut object: ProposedContextObject,
+    ) -> AgentOrchestrationServiceResult<ProposedContextObject> {
+        if object.object_type != ContextObjectType::Npc {
+            return Ok(object);
+        }
+
+        let response = self
+            .backstory_generator
+            .generate_backstory(BackstoryGenerationRequest {
+                world_summary: request.world_summary.clone(),
+                recent_messages: request.recent_messages.clone(),
+                retrieved_objects: request.retrieved_objects.clone(),
+                player_action: request.player_action.clone(),
+                narrator_message: narrator_message.to_owned(),
+                context_object: object.clone(),
+            })
+            .await?;
+
+        object.long_desc = Some(response.backstory);
+        Ok(object)
     }
 
     /// Generates the final narrated response and any extracted context objects.
@@ -68,6 +102,10 @@ impl AgentOrchestrationService {
         }
 
         if let Some(object) = narration.proposed_context_object {
+            let object = self
+                .enrich_narrator_context_object(&request, &narration.message, object)
+                .await?;
+
             return Ok(AgentOrchestrationResponse {
                 message: narration.message,
                 objects: vec![object],

@@ -3,8 +3,8 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use application::{
     ports::{
-        ContextObjectRepository, Embedder, GameSessionRepository, MemoryExtractorPort,
-        MessageRepository, NarratorPort, UnitOfWorkFactory, VectorSearcher,
+        BackstoryGeneratorPort, ContextObjectRepository, Embedder, GameSessionRepository,
+        MemoryExtractorPort, MessageRepository, NarratorPort, UnitOfWorkFactory, VectorSearcher,
     },
     services::{
         AgentOrchestrationService, Clock, IdGenerator, PromptAssembler, PromptAssemblyService,
@@ -15,7 +15,7 @@ use axum::Router;
 use infrastructure::{
     adapters::{
         EmbeddingAdapter, OpenRouterMemoryExtractorAdapter, OpenRouterNarratorAdapter,
-        QdSearchService,
+        QdSearchService, QwenBackstoryAdapter,
     },
     repositories::connecion::PgDatabase,
 };
@@ -68,7 +68,13 @@ pub async fn bootstrap_api_server(config: ApiConfig) -> Result<ApiServer> {
     let narrator: Arc<dyn NarratorPort> = Arc::new(OpenRouterNarratorAdapter::new().await?);
     let memory_extractor: Arc<dyn MemoryExtractorPort> =
         Arc::new(OpenRouterMemoryExtractorAdapter::new().await?);
-    let agent_orchestration = Arc::new(AgentOrchestrationService::new(narrator, memory_extractor));
+    let backstory_generator: Arc<dyn BackstoryGeneratorPort> =
+        Arc::new(QwenBackstoryAdapter::new()?);
+    let agent_orchestration = Arc::new(AgentOrchestrationService::new(
+        narrator,
+        memory_extractor,
+        backstory_generator,
+    ));
     let id_generator: Arc<dyn IdGenerator> = Arc::new(UuidGenerator);
     let prompt_assembly: Arc<dyn PromptAssembler> = Arc::new(PromptAssemblyService::new());
 
