@@ -8,6 +8,6 @@ mod parsing;
 mod prompts;
 mod tools;
 
-pub use backstory::QwenBackstoryAdapter;
+pub use backstory::BackstoryModelAdapter;
 pub use memory_extractor::OpenRouterMemoryExtractorAdapter;
 pub use narrator::OpenRouterNarratorAdapter;

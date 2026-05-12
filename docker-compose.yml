@@ -4,11 +4,11 @@ services:
     container_name: ai-game-master-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-ai_game_master}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,9 +26,32 @@ services:
         soft: 65536
         hard: 65536
     ports:
-      - "${QDRANT_PORT:-6333}:6333"
+      - "${QDRANT_HTTP_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
     volumes:
       - qdrant_data:/qdrant/storage
+
+  iam-service:
+    build:
+      context: ./iam-service
+    container_name: ai-game-master-iam-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: "host=postgres user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD:-postgres} dbname=${POSTGRES_DB:-ai_game_master} sslmode=disable"
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-dev}
+      JWT_ISSUER: ${JWT_ISSUER:-iam-service}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-ai-game-master}
+      JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-86400}
+    ports:
+      - "${IAM_PORT:-8081}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
@@ -42,28 +65,25 @@ services:
       qdrant:
         condition: service_started
     environment:
-      API_ADDR: ${API_ADDR}
-      DATABASE_URL: ${DATABASE_URL}
+      API_ADDR: ${API_ADDR:-0.0.0.0:3000}
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ai_game_master}}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ISSUER: ${JWT_ISSUER:-}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-dev}
+      JWT_ISSUER: ${JWT_ISSUER:-iam-service}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-ai-game-master}
       JWT_USER_ID_CLAIM: ${JWT_USER_ID_CLAIM:-sub}
       JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-0}
       LLM_API_KEY: ${LLM_API_KEY}
       LLM_MODEL: ${LLM_MODEL}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nvidia/llama-nemotron-embed-vl-1b-v2:free}
       EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-256}
-      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-      BACKSTORY_LLM_BASE_URL: ${BACKSTORY_LLM_BASE_URL:-http://host.docker.internal:8000/v1}
-      BACKSTORY_LLM_API_KEY: ${BACKSTORY_LLM_API_KEY:-}
-      BACKSTORY_LLM_MODEL: ${BACKSTORY_LLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}
-      BACKSTORY_LLM_TEMPERATURE: ${BACKSTORY_LLM_TEMPERATURE:-0.9}
-      BACKSTORY_LLM_MAX_TOKENS: ${BACKSTORY_LLM_MAX_TOKENS:-450}
+      QDRANT_GRPC_URL: ${QDRANT_GRPC_URL:-http://qdrant:6334}
+      BACKSTORY_MODEL_BASE_URL: ${BACKSTORY_MODEL_BASE_URL:-https://kmfj59fk-5000.euw.devtunnels.ms}
+      BACKSTORY_MODEL_MAX_NEW_TOKENS: ${BACKSTORY_MODEL_MAX_NEW_TOKENS:-180}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "${API_PORT}:3000"
+      - "${API_PORT:-3000}:3000"
 
 volumes:
   postgres_data:

@@ -20,7 +20,9 @@ pub(super) struct CreateContextObjectToolInput {
     long_desc: Option<String>,
     #[input(description = "Importance score from 0.0 to 1.0")]
     importance_score: f32,
-    #[input(description = "Optional JSON object with only string, number, or boolean values")]
+    #[input(
+        description = "Optional JSON object with only string, number, or boolean values. For Npc, include race and class/profession when known."
+    )]
     attributes: Option<Value>,
 }
 

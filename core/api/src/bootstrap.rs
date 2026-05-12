@@ -14,8 +14,8 @@ use application::{
 use axum::Router;
 use infrastructure::{
     adapters::{
-        EmbeddingAdapter, OpenRouterMemoryExtractorAdapter, OpenRouterNarratorAdapter,
-        QdSearchService, QwenBackstoryAdapter,
+        BackstoryModelAdapter, EmbeddingAdapter, OpenRouterMemoryExtractorAdapter,
+        OpenRouterNarratorAdapter, QdSearchService,
     },
     repositories::connecion::PgDatabase,
 };
@@ -69,7 +69,7 @@ pub async fn bootstrap_api_server(config: ApiConfig) -> Result<ApiServer> {
     let memory_extractor: Arc<dyn MemoryExtractorPort> =
         Arc::new(OpenRouterMemoryExtractorAdapter::new().await?);
     let backstory_generator: Arc<dyn BackstoryGeneratorPort> =
-        Arc::new(QwenBackstoryAdapter::new()?);
+        Arc::new(BackstoryModelAdapter::new()?);
     let agent_orchestration = Arc::new(AgentOrchestrationService::new(
         narrator,
         memory_extractor,

@@ -1,0 +1,25 @@
+services:
+  api:
+    build: .
+    container_name: dnd-backstory-api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./artifacts:/app/artifacts:ro
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - TORCH_HOME=/tmp/torch_cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped

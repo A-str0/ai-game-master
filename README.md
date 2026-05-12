@@ -1,5 +1,29 @@
 # ai-game-master
 
+## Docker Compose
+
+Единый запуск из корня репозитория:
+
+```bash
+docker compose up --build
+```
+
+Поднимаются:
+- `iam-service` на `http://localhost:8081`
+- `api` на `http://localhost:3000`
+- общий `postgres`
+- `qdrant`
+
+`iam-service` не поднимает отдельную БД: он использует тот же контейнер
+`postgres` и ту же базу из `POSTGRES_DB`.
+
+`backstory-model` в этом compose не поднимается: core API обращается к внешнему
+REST endpoint из `BACKSTORY_MODEL_BASE_URL`.
+
+Core API подключается к Qdrant по gRPC через `QDRANT_GRPC_URL`
+(`http://qdrant:6334` внутри Docker). REST-порт Qdrant `6333` нужен только для
+ручной отладки с хоста.
+
 ## Auth
 
 API больше не принимает `x-user-id`. Для всех защищённых эндпоинтов нужен
@@ -27,30 +51,49 @@ JWT должен содержать:
 ```json
 {
   "sub": "550e8400-e29b-41d4-a716-446655440000",
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "iss": "iam-service",
   "aud": "ai-game-master",
   "exp": 4102444800
 }
 ```
 
+В обычном сценарии токен не нужно собирать руками. Получите его через IAM:
+
+```bash
+curl -X POST http://localhost:8081/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"123456"}'
+
+curl -X POST http://localhost:8081/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"123456"}'
+```
+
+`/login` вернёт JSON вида `{"token":"<jwt>"}`. В запросы к core API передавайте
+только этот JWT в HTTP-заголовке:
+
+```http
+Authorization: Bearer <jwt>
+```
+
+JWT подписывается алгоритмом `HS256`. `JWT_SECRET`, `JWT_ISSUER` и
+`JWT_AUDIENCE` в `docker-compose.yml` передаются одновременно в `iam-service` и
+в core API, поэтому токен из `/login` принимается core API без дополнительной
+конвертации.
+
 ## Character Backstory LLM
 
 Бэкстори не генерируется отдельным endpoint-ом. Она создаётся внутри обычного
-turn flow, когда `Narrator` сам вызывает `create_context_object` для объекта
-типа `Npc`. В этом случае API обогащает `long_desc` этого `ContextObject` через
-локальный OpenAI-compatible backend с Qwen перед сохранением объекта.
+turn flow, когда агент создаёт `ContextObject` типа `Npc`. В этом случае API
+обогащает `long_desc` через внешний REST endpoint `backstory-model` перед
+сохранением объекта.
 
 Поддержанные env-переменные:
 
-- `BACKSTORY_LLM_BASE_URL`: base URL локального сервера, по умолчанию `http://127.0.0.1:8000/v1`
-- `BACKSTORY_LLM_API_KEY`: опциональный bearer token для совместимых серверов
-- `BACKSTORY_LLM_MODEL`: имя модели, по умолчанию `Qwen/Qwen2.5-7B-Instruct`
-- `BACKSTORY_LLM_TEMPERATURE`: температура, по умолчанию `0.75`
-- `BACKSTORY_LLM_MAX_TOKENS`: лимит ответа, по умолчанию `450`
+- `BACKSTORY_MODEL_BASE_URL`: base URL сервиса `backstory-model`, по умолчанию `https://kmfj59fk-5000.euw.devtunnels.ms`
+- `BACKSTORY_MODEL_MAX_NEW_TOKENS`: лимит генерации, по умолчанию `180`
 
-Если API запущен в Docker, а модель работает на хост-машине, используйте:
+В общем `docker-compose.yml` API по умолчанию обращается к:
 
-- `BACKSTORY_LLM_BASE_URL=http://host.docker.internal:8000/v1`
-
-`docker-compose.yml` уже добавляет `host.docker.internal -> host-gateway`, чтобы
-контейнер API видел модель, запущенную на вашей машине.
+- `BACKSTORY_MODEL_BASE_URL=https://kmfj59fk-5000.euw.devtunnels.ms`

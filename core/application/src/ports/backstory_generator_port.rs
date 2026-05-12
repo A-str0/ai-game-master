@@ -52,10 +52,10 @@ pub enum BackstoryGeneratorError {
 /// Convenient result alias returned by [`BackstoryGeneratorPort`].
 pub type BackstoryGeneratorResult<T> = Result<T, BackstoryGeneratorError>;
 
-/// Port that enriches narrator-created NPC context objects with a backstory.
+/// Port that enriches NPC context objects with a backstory.
 #[async_trait::async_trait]
 pub trait BackstoryGeneratorPort: Send + Sync {
-    /// Produces a backstory for the supplied narrator-created NPC object.
+    /// Produces a backstory for the supplied NPC object.
     async fn generate_backstory(
         &self,
         request: BackstoryGenerationRequest,

@@ -2,6 +2,7 @@ use application::ports::{
     Embedder, EmbedderError, EmbedderQuery, EmbedderResponse, EmbedderResult,
 };
 use reqwest::{Client, StatusCode};
+use serde::Deserialize;
 use serde_json::json;
 
 // TODO: move to config
@@ -80,13 +81,28 @@ impl Embedder for EmbeddingAdapter {
             return Err(error);
         }
 
-        let body: EmbedderResponse = response.json().await.into_embedder()?;
-        if body.vector.is_empty() {
+        let body: OpenRouterEmbeddingResponse = response.json().await.into_embedder()?;
+        let vector = body
+            .data
+            .into_iter()
+            .next()
+            .map(|item| item.embedding)
+            .unwrap_or_default();
+
+        if vector.is_empty() {
             return Err(EmbedderError::InvalidResponse);
         }
 
-        Ok(EmbedderResponse {
-            vector: body.vector,
-        })
+        Ok(EmbedderResponse { vector })
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenRouterEmbeddingResponse {
+    data: Vec<OpenRouterEmbeddingData>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenRouterEmbeddingData {
+    embedding: Vec<f32>,
 }

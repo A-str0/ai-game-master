@@ -62,7 +62,7 @@ impl AgentOrchestrationService {
         }
     }
 
-    async fn enrich_narrator_context_object(
+    async fn enrich_context_object(
         &self,
         request: &NarratorRequest,
         narrator_message: &str,
@@ -103,7 +103,7 @@ impl AgentOrchestrationService {
 
         if let Some(object) = narration.proposed_context_object {
             let object = self
-                .enrich_narrator_context_object(&request, &narration.message, object)
+                .enrich_context_object(&request, &narration.message, object)
                 .await?;
 
             return Ok(AgentOrchestrationResponse {
@@ -115,16 +115,24 @@ impl AgentOrchestrationService {
         let extraction = self
             .memory_extractor
             .extract(MemoryExtractorRequest {
-                recent_messages: request.recent_messages,
-                retrieved_objects: request.retrieved_objects,
-                player_action: request.player_action,
+                recent_messages: request.recent_messages.clone(),
+                retrieved_objects: request.retrieved_objects.clone(),
+                player_action: request.player_action.clone(),
                 narrator_message: narration.message.clone(),
             })
             .await?;
 
+        let mut objects = Vec::with_capacity(extraction.objects.len());
+        for object in extraction.objects {
+            objects.push(
+                self.enrich_context_object(&request, &narration.message, object)
+                    .await?,
+            );
+        }
+
         Ok(AgentOrchestrationResponse {
             message: narration.message,
-            objects: extraction.objects,
+            objects,
         })
     }
 }
